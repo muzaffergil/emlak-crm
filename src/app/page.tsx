@@ -44,14 +44,28 @@ export default function PortfolioPage() {
   }
 
   const filtered = properties.filter((p) => {
+    if (!filter.trim()) return true;
     const q = filter.toLowerCase();
-    return (
-      !q ||
-      p.title.toLowerCase().includes(q) ||
-      p.city.toLowerCase().includes(q) ||
-      (p.district || "").toLowerCase().includes(q) ||
-      p.type.toLowerCase().includes(q)
-    );
+    const haystack = [
+      p.title,
+      p.type,
+      p.city,
+      p.district,
+      p.neighborhood,
+      p.rooms,
+      p.description,
+      p.status,
+      p.price ? p.price.toLocaleString("tr-TR") : "",
+      p.price ? String(p.price) : "",
+      p.size ? String(p.size) : "",
+      p.floor ? String(p.floor) : "",
+      p.price_type === "kira" ? "kiralık kira" : "satılık satış",
+      ...p.features,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
   });
 
   return (
