@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { MessageSquare, CheckCircle, AlertCircle, Loader2, ArrowRight } from "lucide-react";
+import { MessageSquare, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { parsePropertyFromText } from "@/lib/claude";
 import { propertyStore, type Property } from "@/lib/storage";
 
@@ -13,17 +13,15 @@ const EXAMPLES = [
 
 export default function AddPropertyPage() {
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [added, setAdded] = useState<Property[]>([]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
-    setLoading(true);
     setError("");
     try {
-      const parsed = await parsePropertyFromText(text);
+      const parsed = parsePropertyFromText(text);
       const property = propertyStore.add({
         title: parsed.title,
         type: parsed.type,
@@ -45,8 +43,6 @@ export default function AddPropertyPage() {
       setText("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bir hata oluştu");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -75,10 +71,10 @@ export default function AddPropertyPage() {
         )}
 
         <div className="flex justify-between items-center mt-3">
-          <p className="text-xs text-slate-400">Claude AI ile otomatik çözümleme</p>
-          <button type="submit" disabled={loading || !text.trim()}
+          <p className="text-xs text-slate-400">Otomatik metin çözümleme</p>
+          <button type="submit" disabled={!text.trim()}
             className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
-            {loading ? <><Loader2 size={16} className="animate-spin" /> Çözümleniyor...</> : <><ArrowRight size={16} /> Ekle</>}
+            <ArrowRight size={16} /> Ekle
           </button>
         </div>
       </form>

@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Users, Zap, PlusCircle, Settings } from "lucide-react";
+import { Building2, Users, Zap, PlusCircle } from "lucide-react";
 
 const links = [
   { href: "/", label: "Portföy", icon: Building2 },
   { href: "/clients", label: "Müşteriler", icon: Users },
   { href: "/matches", label: "Eşleşmeler", icon: Zap },
   { href: "/add-property", label: "Portföy Ekle", icon: PlusCircle },
-  { href: "/settings", label: "Ayarlar", icon: Settings },
 ];
 
 export default function Navbar() {

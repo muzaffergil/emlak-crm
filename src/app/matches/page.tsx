@@ -47,7 +47,7 @@ export default function MatchesPage() {
 
   useEffect(() => { loadMatches(); }, []);
 
-  async function runMatch() {
+  function runMatch() {
     setRunning(true);
     setError("");
     try {
@@ -55,11 +55,12 @@ export default function MatchesPage() {
       const properties = propertyStore.getAll().filter((p) => p.status === "musait");
       if (clients.length === 0 || properties.length === 0) {
         setLastRun("Eşleştirilecek müşteri veya portföy yok");
+        setRunning(false);
         return;
       }
       let total = 0;
       for (const c of clients) {
-        const results = await computeMatches(
+        const results = computeMatches(
           {
             id: c.id,
             intent: c.intent,
@@ -122,7 +123,7 @@ export default function MatchesPage() {
         </div>
         <div className="flex items-center gap-3">
           {lastRun && <span className="text-sm text-green-600">{lastRun}</span>}
-          <button onClick={runMatch} disabled={running}
+          <button onClick={() => runMatch()} disabled={running}
             className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50">
             <RefreshCw size={16} className={running ? "animate-spin" : ""} />
             {running ? "Eşleştiriliyor..." : "Eşleştir"}
