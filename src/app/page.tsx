@@ -1,7 +1,154 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, Upload, X, SlidersHorizontal } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, Upload, X, SlidersHorizontal, Pencil } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
+
+// ── Düzenleme Modalı ────────────────────────────────────────────────────────
+function EditModal({ property, onClose, onSave }: {
+  property: Property;
+  onClose: () => void;
+  onSave: (updated: Property) => void;
+}) {
+  const [form, setForm] = useState({
+    title: property.title,
+    type: property.type,
+    city: property.city,
+    district: property.district || "",
+    neighborhood: property.neighborhood || "",
+    price: property.price != null ? String(property.price) : "",
+    price_type: property.price_type,
+    size: property.size != null ? String(property.size) : "",
+    rooms: property.rooms || "",
+    floor: property.floor != null ? String(property.floor) : "",
+    total_floors: property.total_floors != null ? String(property.total_floors) : "",
+    status: property.status,
+    description: property.description || "",
+    features: property.features.join(", "),
+  });
+
+  function f(key: keyof typeof form, val: string) {
+    setForm(prev => ({ ...prev, [key]: val }));
+  }
+
+  function handleSave() {
+    const updated: Property = {
+      ...property,
+      title: form.title.trim() || property.title,
+      type: form.type,
+      city: form.city.trim() || "Gaziantep",
+      district: form.district.trim() || undefined,
+      neighborhood: form.neighborhood.trim() || undefined,
+      price: form.price ? Number(form.price) : undefined,
+      price_type: form.price_type,
+      size: form.size ? Number(form.size) : undefined,
+      rooms: form.rooms.trim() || undefined,
+      floor: form.floor !== "" ? Number(form.floor) : undefined,
+      total_floors: form.total_floors !== "" ? Number(form.total_floors) : undefined,
+      status: form.status,
+      description: form.description.trim() || undefined,
+      features: form.features.split(",").map(s => s.trim()).filter(Boolean),
+    };
+    propertyStore.update(property.id, updated);
+    onSave(updated);
+  }
+
+  const inputCls = "w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300";
+  const labelCls = "text-xs font-semibold text-slate-500 block mb-1";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="font-semibold text-slate-800">Portföy Düzenle <span className="text-slate-400 font-normal text-sm">#{property.id}</span></h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <label className={labelCls}>Başlık</label>
+              <input className={inputCls} value={form.title} onChange={e => f("title", e.target.value)} />
+            </div>
+
+            <div>
+              <label className={labelCls}>Tip</label>
+              <select className={inputCls} value={form.type} onChange={e => f("type", e.target.value)}>
+                {["daire","villa","arsa","dükkan","ofis"].map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>Durum</label>
+              <select className={inputCls} value={form.status} onChange={e => f("status", e.target.value)}>
+                <option value="musait">Müsait</option>
+                <option value="satildi">Satıldı</option>
+                <option value="rezerve">Rezerve</option>
+                <option value="kiralik">Kiralık</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>Şehir</label>
+              <input className={inputCls} value={form.city} onChange={e => f("city", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>İlçe</label>
+              <input className={inputCls} value={form.district} onChange={e => f("district", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Mahalle</label>
+              <input className={inputCls} value={form.neighborhood} onChange={e => f("neighborhood", e.target.value)} />
+            </div>
+
+            <div>
+              <label className={labelCls}>Fiyat (₺)</label>
+              <input type="number" className={inputCls} value={form.price} onChange={e => f("price", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Satış / Kiralık</label>
+              <select className={inputCls} value={form.price_type} onChange={e => f("price_type", e.target.value)}>
+                <option value="satis">Satılık</option>
+                <option value="kira">Kiralık</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelCls}>m²</label>
+              <input type="number" className={inputCls} value={form.size} onChange={e => f("size", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Oda Sayısı</label>
+              <input className={inputCls} value={form.rooms} onChange={e => f("rooms", e.target.value)} placeholder="ör. 3+1" />
+            </div>
+            <div>
+              <label className={labelCls}>Kat</label>
+              <input type="number" className={inputCls} value={form.floor} onChange={e => f("floor", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Toplam Kat</label>
+              <input type="number" className={inputCls} value={form.total_floors} onChange={e => f("total_floors", e.target.value)} />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className={labelCls}>Özellikler (virgülle ayırın)</label>
+              <input className={inputCls} value={form.features} onChange={e => f("features", e.target.value)} placeholder="balkon, otopark, asansör" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className={labelCls}>Açıklama</label>
+              <textarea rows={3} className={inputCls} value={form.description} onChange={e => f("description", e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">İptal</button>
+          <button onClick={handleSave} className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   musait: { label: "Müsait", color: "bg-green-100 text-green-800" },
@@ -84,6 +231,7 @@ export default function PortfolioPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
+  const [editing, setEditing] = useState<Property | null>(null);
 
   useEffect(() => { setProperties(propertyStore.getAll()); }, []);
 
@@ -152,8 +300,14 @@ export default function PortfolioPage() {
     setProperties(prev => prev.filter(p => p.id !== id));
   }
 
+  function handleSaveEdit(updated: Property) {
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setEditing(null);
+  }
+
   return (
     <div>
+      {editing && <EditModal property={editing} onClose={() => setEditing(null)} onSave={handleSaveEdit} />}
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -278,9 +432,14 @@ export default function PortfolioPage() {
               <div key={p.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-slate-800 text-sm leading-tight">{p.title}</h3>
-                  <button onClick={() => deleteProperty(p.id)} className="text-slate-300 hover:text-red-500 transition-colors ml-2 flex-shrink-0">
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <button onClick={() => setEditing(p)} className="text-slate-300 hover:text-amber-500 transition-colors">
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => deleteProperty(p.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                   <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">{p.type}</span>

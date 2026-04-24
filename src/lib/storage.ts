@@ -77,6 +77,12 @@ export const propertyStore = {
     write("emlak_properties", [item, ...items]);
     return item;
   },
+  update(id: number, data: Partial<Omit<Property, "id" | "created_at">>): void {
+    const items = read<Property>("emlak_properties");
+    const idx = items.findIndex((p) => p.id === id);
+    if (idx >= 0) items[idx] = { ...items[idx], ...data };
+    write("emlak_properties", items);
+  },
   delete(id: number): void {
     write(
       "emlak_properties",
