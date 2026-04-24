@@ -13,9 +13,9 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname();
   return (
-    <nav className="bg-slate-900 text-white shadow-lg">
+    <nav className="bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 flex items-center gap-2 h-14">
-        <span className="font-bold text-lg mr-6 text-amber-400">EmlakCRM</span>
+        <span className="font-bold text-lg mr-6 text-amber-500">EmlakCRM</span>
         {links.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
@@ -23,7 +23,7 @@ export default function Navbar() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               pathname === href
                 ? "bg-amber-500 text-white"
-                : "text-slate-300 hover:bg-slate-700"
+                : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             <Icon size={16} />

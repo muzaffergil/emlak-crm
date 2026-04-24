@@ -61,7 +61,7 @@ export default function AddPropertyPage() {
         <textarea value={text} onChange={(e) => setText(e.target.value)}
           placeholder="Örn: Kadıköy'de 3+1, 120m², 5. kat, balkonlu, otoparklı daire, 8.5 milyon TL satılık..."
           rows={4}
-          className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" />
+          className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" />
 
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm mt-2 bg-red-50 px-3 py-2 rounded-lg">
