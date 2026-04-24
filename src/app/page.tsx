@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, Upload } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -13,8 +13,32 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function PortfolioPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [filter, setFilter] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
 
   useEffect(() => { setProperties(propertyStore.getAll()); }, []);
+
+  async function importFromExcel() {
+    if (!confirm("Excel'deki 77 gayrimenkul portföye eklenecek. Devam edilsin mi?")) return;
+    setImporting(true);
+    setImportMsg("");
+    try {
+      const base = window.location.pathname.includes("/emlak-crm") ? "/emlak-crm" : "";
+      const res = await fetch(`${base}/portfolio-data.json`);
+      const data = await res.json();
+      let added = 0;
+      for (const p of data) {
+        propertyStore.add(p);
+        added++;
+      }
+      setProperties(propertyStore.getAll());
+      setImportMsg(`${added} gayrimenkul eklendi!`);
+    } catch {
+      setImportMsg("Yükleme hatası, tekrar deneyin.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   function deleteProperty(id: number) {
     if (!confirm("Bu portföyü silmek istediğinizden emin misiniz?")) return;
@@ -42,12 +66,23 @@ export default function PortfolioPage() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">{properties.length} gayrimenkul</p>
         </div>
-        <a
-          href="add-property"
-          className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Portföy Ekle
-        </a>
+        <div className="flex items-center gap-2">
+          {importMsg && <span className="text-sm text-green-600 font-medium">{importMsg}</span>}
+          <button
+            onClick={importFromExcel}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            <Upload size={15} />
+            {importing ? "Yükleniyor..." : "Excel'den Yükle"}
+          </button>
+          <a
+            href="add-property"
+            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + Portföy Ekle
+          </a>
+        </div>
       </div>
 
       <input
