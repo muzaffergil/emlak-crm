@@ -18,21 +18,18 @@ export default function PortfolioPage() {
 
   useEffect(() => { setProperties(propertyStore.getAll()); }, []);
 
-  async function importFromExcel() {
-    if (!confirm("Excel'deki 77 gayrimenkul portföye eklenecek. Devam edilsin mi?")) return;
+  async function importJson(file: string, label: string) {
+    if (!confirm(`${label} portföye eklenecek. Devam edilsin mi?`)) return;
     setImporting(true);
     setImportMsg("");
     try {
       const base = window.location.pathname.includes("/emlak-crm") ? "/emlak-crm" : "";
-      const res = await fetch(`${base}/portfolio-data.json`);
+      const res = await fetch(`${base}/${file}`);
       const data = await res.json();
       let added = 0;
-      for (const p of data) {
-        propertyStore.add(p);
-        added++;
-      }
+      for (const p of data) { propertyStore.add(p); added++; }
       setProperties(propertyStore.getAll());
-      setImportMsg(`${added} gayrimenkul eklendi!`);
+      setImportMsg(`${added} kayıt eklendi!`);
     } catch {
       setImportMsg("Yükleme hatası, tekrar deneyin.");
     } finally {
@@ -69,12 +66,20 @@ export default function PortfolioPage() {
         <div className="flex items-center gap-2">
           {importMsg && <span className="text-sm text-green-600 font-medium">{importMsg}</span>}
           <button
-            onClick={importFromExcel}
+            onClick={() => importJson("portfolio-data.json", "Yücesoy Güncel (77 gayrimenkul)")}
             disabled={importing}
             className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             <Upload size={15} />
-            {importing ? "Yükleniyor..." : "Excel'den Yükle"}
+            {importing ? "Yükleniyor..." : "Yücesoy Güncel"}
+          </button>
+          <button
+            onClick={() => importJson("portfolio2-data.json", "Portföy Takip (95 kayıt: daire, villa, arsa)")}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            <Upload size={15} />
+            {importing ? "Yükleniyor..." : "Portföy Takip"}
           </button>
           <a
             href="add-property"
