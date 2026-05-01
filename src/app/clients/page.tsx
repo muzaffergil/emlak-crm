@@ -10,6 +10,36 @@ const INTENT_LABELS: Record<string, string> = {
   kiraya_veriyor: "Kiraya Veren",
 };
 
+function TagInput({ value, tags, placeholder, onChange, onAdd, onRemove }: {
+  value: string;
+  tags: string[];
+  placeholder: string;
+  onChange: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (v: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1 mb-1">
+        {tags.map((v) => (
+          <span key={v} className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+            {v}
+            <button type="button" onClick={() => onRemove(v)}><X size={10} /></button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-1">
+        <input type="text" value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onAdd())}
+          placeholder={placeholder}
+          className="flex-1 px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+        <button type="button" onClick={onAdd} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">Ekle</button>
+      </div>
+    </div>
+  );
+}
+
 const emptyForm = {
   name: "",
   phone: "",
@@ -75,27 +105,6 @@ export default function ClientsPage() {
     setForm((prev) => ({ ...prev, [field]: (prev[field] as string[]).filter((v) => v !== val) }));
   }
 
-  const TagInput = ({ field, placeholder }: { field: keyof typeof tagInput; placeholder: string }) => (
-    <div>
-      <div className="flex flex-wrap gap-1 mb-1">
-        {(form[field as keyof typeof emptyForm] as string[]).map((v) => (
-          <span key={v} className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-            {v}
-            <button type="button" onClick={() => removeTag(field as keyof typeof emptyForm, v)}><X size={10} /></button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-1">
-        <input type="text" value={tagInput[field]}
-          onChange={(e) => setTagInput((p) => ({ ...p, [field]: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag(field))}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-        <button type="button" onClick={() => addTag(field)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">Ekle</button>
-      </div>
-    </div>
-  );
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -151,16 +160,37 @@ export default function ClientsPage() {
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Gayrimenkul Tipleri</label>
-              <TagInput field="property_types" placeholder="daire, villa, arsa..." />
+              <TagInput
+                value={tagInput.property_types}
+                tags={form.property_types}
+                placeholder="daire, villa, arsa..."
+                onChange={(v) => setTagInput((p) => ({ ...p, property_types: v }))}
+                onAdd={() => addTag("property_types")}
+                onRemove={(v) => removeTag("property_types", v)}
+              />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Şehirler</label>
-                <TagInput field="cities" placeholder="İstanbul, Ankara..." />
+                <TagInput
+                  value={tagInput.cities}
+                  tags={form.cities}
+                  placeholder="İstanbul, Ankara..."
+                  onChange={(v) => setTagInput((p) => ({ ...p, cities: v }))}
+                  onAdd={() => addTag("cities")}
+                  onRemove={(v) => removeTag("cities", v)}
+                />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">İlçeler</label>
-                <TagInput field="districts" placeholder="Kadıköy, Beşiktaş..." />
+                <TagInput
+                  value={tagInput.districts}
+                  tags={form.districts}
+                  placeholder="Kadıköy, Beşiktaş..."
+                  onChange={(v) => setTagInput((p) => ({ ...p, districts: v }))}
+                  onAdd={() => addTag("districts")}
+                  onRemove={(v) => removeTag("districts", v)}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -175,7 +205,14 @@ export default function ClientsPage() {
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">İstenen Özellikler</label>
-              <TagInput field="features_wanted" placeholder="balkon, otopark, asansör..." />
+              <TagInput
+                value={tagInput.features_wanted}
+                tags={form.features_wanted}
+                placeholder="balkon, otopark, asansör..."
+                onChange={(v) => setTagInput((p) => ({ ...p, features_wanted: v }))}
+                onAdd={() => addTag("features_wanted")}
+                onRemove={(v) => removeTag("features_wanted", v)}
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Notlar</label>
