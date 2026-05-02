@@ -31,7 +31,7 @@ export interface Client {
   budget_max?: number;
   size_min?: number;
   size_max?: number;
-  rooms?: string;
+  rooms?: string[];
   features_wanted: string[];
   notes?: string;
   created_at: string;

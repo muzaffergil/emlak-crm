@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Users, Trash2, Phone, Mail, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown } from "lucide-react";
 import { clientStore, type Client } from "@/lib/storage";
 
 const INTENT_LABELS: Record<string, string> = {
@@ -10,32 +10,99 @@ const INTENT_LABELS: Record<string, string> = {
   kiraya_veriyor: "Kiraya Veren",
 };
 
-function TagInput({ value, tags, placeholder, onChange, onAdd, onRemove }: {
-  value: string;
-  tags: string[];
+const ROOMS_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "5+2", "6+1"];
+const PROPERTY_TYPE_OPTIONS = ["Daire", "Villa", "Müstakil Ev", "Arsa", "Dükkan", "Ofis", "Bina", "Depo", "Tarla"];
+const CITY_OPTIONS = ["Gaziantep", "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Kocaeli", "Mersin", "Diyarbakır", "Eskişehir", "Samsun", "Denizli", "Trabzon", "Kayseri", "Malatya", "Balıkesir"];
+const DISTRICT_OPTIONS = ["Şahinbey", "Şehitkamil", "Araban", "İslahiye", "Karkamış", "Nizip", "Nurdağı", "Oğuzeli", "Yavuzeli"];
+const FEATURE_OPTIONS = ["Balkon", "Teras", "Bahçe", "Otopark", "Garaj", "Asansör", "Güvenlik", "Site içi", "Havuz", "Spor salonu", "Sauna", "Ebeveyn banyosu", "Amerikan mutfak", "Doğalgaz", "Kombi", "Klima", "Depolu", "Deniz manzarası", "Şehir manzarası", "Yeni bina", "Sıfır", "Krediye uygun"];
+
+function MultiCheckboxDropdown({
+  placeholder,
+  options,
+  selected,
+  onChange,
+}: {
   placeholder: string;
-  onChange: (v: string) => void;
-  onAdd: () => void;
-  onRemove: (v: string) => void;
+  options: string[];
+  selected: string[];
+  onChange: (values: string[]) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = options.filter((o) => o.toLowerCase().includes(search.toLowerCase()));
+
+  function toggle(option: string) {
+    onChange(selected.includes(option) ? selected.filter((s) => s !== option) : [...selected, option]);
+  }
+
+  const label =
+    selected.length === 0 ? placeholder :
+    selected.length <= 2 ? selected.join(", ") :
+    `${selected.length} seçildi`;
+
   return (
-    <div>
-      <div className="flex flex-wrap gap-1 mb-1">
-        {tags.map((v) => (
-          <span key={v} className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-            {v}
-            <button type="button" onClick={() => onRemove(v)}><X size={10} /></button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-1">
-        <input type="text" value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onAdd())}
-          placeholder={placeholder}
-          className="flex-1 px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-        <button type="button" onClick={onAdd} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded text-sm">Ekle</button>
-      </div>
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-amber-300 flex items-center justify-between bg-white"
+      >
+        <span className={selected.length === 0 ? "text-slate-400" : "text-slate-700 truncate"}>{label}</span>
+        <ChevronDown size={14} className={`text-slate-400 flex-shrink-0 ml-1 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
+          {options.length > 6 && (
+            <div className="p-2 border-b border-slate-100">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ara..."
+                autoFocus
+                className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-300"
+              />
+            </div>
+          )}
+          <div className="max-h-48 overflow-y-auto p-1">
+            {filtered.map((option) => (
+              <label key={option} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-amber-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(option)}
+                  onChange={() => toggle(option)}
+                  className="accent-amber-500 w-3.5 h-3.5 flex-shrink-0"
+                />
+                <span className="text-sm text-slate-700">{option}</span>
+              </label>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-xs text-slate-400 text-center py-2">Sonuç yok</p>
+            )}
+          </div>
+          {selected.length > 0 && (
+            <div className="p-2 border-t border-slate-100 flex flex-wrap gap-1">
+              {selected.map((s) => (
+                <span key={s} className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                  {s}
+                  <button type="button" onClick={() => toggle(s)}><X size={10} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -52,7 +119,7 @@ const emptyForm = {
   budget_max: "",
   size_min: "",
   size_max: "",
-  rooms: "",
+  rooms: [] as string[],
   features_wanted: [] as string[],
   notes: "",
 };
@@ -61,7 +128,6 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
-  const [tagInput, setTagInput] = useState({ cities: "", districts: "", property_types: "", features_wanted: "" });
 
   useEffect(() => { setClients(clientStore.getAll()); }, []);
 
@@ -85,24 +151,13 @@ export default function ClientsPage() {
       budget_max: form.budget_max ? Number(form.budget_max) : undefined,
       size_min: form.size_min ? Number(form.size_min) : undefined,
       size_max: form.size_max ? Number(form.size_max) : undefined,
-      rooms: form.rooms || undefined,
+      rooms: form.rooms.length > 0 ? form.rooms : undefined,
       features_wanted: form.features_wanted,
       notes: form.notes || undefined,
     });
     setClients((prev) => [newClient, ...prev]);
     setForm({ ...emptyForm });
     setShowForm(false);
-  }
-
-  function addTag(field: keyof typeof tagInput) {
-    const val = tagInput[field].trim();
-    if (!val) return;
-    setForm((prev) => ({ ...prev, [field]: [...(prev[field as keyof typeof emptyForm] as string[]), val] }));
-    setTagInput((prev) => ({ ...prev, [field]: "" }));
-  }
-
-  function removeTag(field: keyof typeof emptyForm, val: string) {
-    setForm((prev) => ({ ...prev, [field]: (prev[field] as string[]).filter((v) => v !== val) }));
   }
 
   return (
@@ -141,6 +196,7 @@ export default function ClientsPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">İşlem Tipi *</label>
@@ -153,46 +209,47 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Oda Sayısı (örn: 3+1)</label>
-                <input value={form.rooms} onChange={(e) => setForm((p) => ({ ...p, rooms: e.target.value }))} placeholder="3+1"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                <label className="text-xs font-medium text-slate-600 block mb-1">Oda Sayısı</label>
+                <MultiCheckboxDropdown
+                  placeholder="Seçiniz..."
+                  options={ROOMS_OPTIONS}
+                  selected={form.rooms}
+                  onChange={(v) => setForm((p) => ({ ...p, rooms: v }))}
+                />
               </div>
             </div>
+
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Gayrimenkul Tipleri</label>
-              <TagInput
-                value={tagInput.property_types}
-                tags={form.property_types}
-                placeholder="daire, villa, arsa..."
-                onChange={(v) => setTagInput((p) => ({ ...p, property_types: v }))}
-                onAdd={() => addTag("property_types")}
-                onRemove={(v) => removeTag("property_types", v)}
+              <MultiCheckboxDropdown
+                placeholder="Daire, Villa, Arsa..."
+                options={PROPERTY_TYPE_OPTIONS}
+                selected={form.property_types}
+                onChange={(v) => setForm((p) => ({ ...p, property_types: v }))}
               />
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Şehirler</label>
-                <TagInput
-                  value={tagInput.cities}
-                  tags={form.cities}
-                  placeholder="İstanbul, Ankara..."
-                  onChange={(v) => setTagInput((p) => ({ ...p, cities: v }))}
-                  onAdd={() => addTag("cities")}
-                  onRemove={(v) => removeTag("cities", v)}
+                <MultiCheckboxDropdown
+                  placeholder="İstanbul, Gaziantep..."
+                  options={CITY_OPTIONS}
+                  selected={form.cities}
+                  onChange={(v) => setForm((p) => ({ ...p, cities: v }))}
                 />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">İlçeler</label>
-                <TagInput
-                  value={tagInput.districts}
-                  tags={form.districts}
-                  placeholder="Kadıköy, Beşiktaş..."
-                  onChange={(v) => setTagInput((p) => ({ ...p, districts: v }))}
-                  onAdd={() => addTag("districts")}
-                  onRemove={(v) => removeTag("districts", v)}
+                <MultiCheckboxDropdown
+                  placeholder="Şahinbey, Şehitkamil..."
+                  options={DISTRICT_OPTIONS}
+                  selected={form.districts}
+                  onChange={(v) => setForm((p) => ({ ...p, districts: v }))}
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[["budget_min","Min Bütçe (₺)"],["budget_max","Max Bütçe (₺)"],["size_min","Min m²"],["size_max","Max m²"]].map(([key, label]) => (
                 <div key={key}>
@@ -203,22 +260,23 @@ export default function ClientsPage() {
                 </div>
               ))}
             </div>
+
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">İstenen Özellikler</label>
-              <TagInput
-                value={tagInput.features_wanted}
-                tags={form.features_wanted}
-                placeholder="balkon, otopark, asansör..."
-                onChange={(v) => setTagInput((p) => ({ ...p, features_wanted: v }))}
-                onAdd={() => addTag("features_wanted")}
-                onRemove={(v) => removeTag("features_wanted", v)}
+              <MultiCheckboxDropdown
+                placeholder="Balkon, Otopark, Asansör..."
+                options={FEATURE_OPTIONS}
+                selected={form.features_wanted}
+                onChange={(v) => setForm((p) => ({ ...p, features_wanted: v }))}
               />
             </div>
+
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">Notlar</label>
               <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
             </div>
+
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50">İptal</button>
               <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Kaydet</button>
@@ -250,7 +308,9 @@ export default function ClientsPage() {
                     {c.property_types.map((t) => <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
                     {c.cities.map((city) => <span key={city} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{city}</span>)}
                     {c.districts.map((d) => <span key={d} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{d}</span>)}
-                    {c.rooms && <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{c.rooms}</span>}
+                    {c.rooms && (Array.isArray(c.rooms) ? c.rooms : [c.rooms]).map((r) => (
+                      <span key={r} className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{r}</span>
+                    ))}
                     {c.budget_max && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">max {c.budget_max.toLocaleString("tr-TR")} ₺</span>}
                     {c.features_wanted.map((f) => <span key={f} className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">{f}</span>)}
                   </div>

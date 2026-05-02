@@ -140,7 +140,7 @@ export function computeMatches(
     budget_max?: number;
     size_min?: number;
     size_max?: number;
-    rooms?: string;
+    rooms?: string[];
     features_wanted: string[];
   },
   properties: {
@@ -209,8 +209,8 @@ export function computeMatches(
     }
 
     // Rooms match
-    if (clientData.rooms && p.rooms) {
-      if (normalizeText(clientData.rooms) === normalizeText(p.rooms)) {
+    if (clientData.rooms && clientData.rooms.length > 0 && p.rooms) {
+      if (clientData.rooms.some((r) => normalizeText(r) === normalizeText(p.rooms!))) {
         score += 10; reasons.push(`${p.rooms} oda sayısı uyuyor`);
       }
     }
