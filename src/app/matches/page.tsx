@@ -60,6 +60,7 @@ export default function MatchesPage() {
       }
       let total = 0;
       for (const c of clients) {
+        matchStore.deleteByClient(c.id);
         const results = computeMatches(
           {
             id: c.id,
