@@ -174,9 +174,14 @@ export function computeMatches(
     }
 
     // Property type match
-    if (clientData.property_types.length === 0 || clientData.property_types.some(pt => normalizeText(pt) === normalizeText(p.type))) {
+    if (clientData.property_types.length === 0) {
       score += 20;
       reasons.push(`${p.type} tipi uyuyor`);
+    } else if (clientData.property_types.some(pt => normalizeText(pt) === normalizeText(p.type))) {
+      score += 20;
+      reasons.push(`${p.type} tipi uyuyor`);
+    } else {
+      score -= 30;
     }
 
     // City match
@@ -188,6 +193,8 @@ export function computeMatches(
     if (p.district && clientData.districts.length > 0) {
       if (clientData.districts.some(d => normalizeText(d) === normalizeText(p.district!))) {
         score += 15; reasons.push(`${p.district} ilçesi uyuyor`);
+      } else {
+        score -= 15;
       }
     }
 
