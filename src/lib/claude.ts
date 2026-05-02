@@ -209,8 +209,9 @@ export function computeMatches(
     }
 
     // Rooms match
-    if (clientData.rooms && clientData.rooms.length > 0 && p.rooms) {
-      if (clientData.rooms.some((r) => normalizeText(r) === normalizeText(p.rooms!))) {
+    if (clientData.rooms && p.rooms) {
+      const roomsArr = Array.isArray(clientData.rooms) ? clientData.rooms : [clientData.rooms as string];
+      if (roomsArr.length > 0 && roomsArr.some((r) => normalizeText(r) === normalizeText(p.rooms!))) {
         score += 10; reasons.push(`${p.rooms} oda sayısı uyuyor`);
       }
     }
