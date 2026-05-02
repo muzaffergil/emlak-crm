@@ -283,10 +283,20 @@ export default function PortfolioPage() {
       const base = window.location.pathname.includes("/emlak-crm") ? "/emlak-crm" : "";
       const res = await fetch(`${base}/${file}`);
       const data = await res.json();
-      let added = 0;
-      for (const p of data) { propertyStore.add(p); added++; }
+      const existing = propertyStore.getAll();
+      const existingKeys = new Set(
+        existing.map(p => `${p.title}|${p.price}|${p.city}|${p.district}`)
+      );
+      let added = 0, skipped = 0;
+      for (const p of data) {
+        const key = `${p.title}|${p.price}|${p.city}|${p.district}`;
+        if (existingKeys.has(key)) { skipped++; continue; }
+        propertyStore.add(p);
+        existingKeys.add(key);
+        added++;
+      }
       setProperties(propertyStore.getAll());
-      setImportMsg(`${added} kayıt eklendi!`);
+      setImportMsg(skipped > 0 ? `${added} eklendi, ${skipped} tekrar atlandı.` : `${added} kayıt eklendi!`);
     } catch {
       setImportMsg("Yükleme hatası.");
     } finally {
