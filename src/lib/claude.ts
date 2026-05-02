@@ -41,7 +41,7 @@ const CITIES = [
 ];
 
 function normalizeText(t: string) {
-  return t.toLowerCase()
+  return t.trim().toLowerCase()
     .replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u")
     .replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c")
     .replace(/İ/g, "i").replace(/Ğ/g, "g").replace(/Ü/g, "u")
