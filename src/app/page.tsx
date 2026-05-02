@@ -338,6 +338,10 @@ export default function PortfolioPage() {
             className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
             <Upload size={14} /> {importing ? "..." : "Portföy Takip"}
           </button>
+          <button onClick={() => importJson("portfolio3-data.json", "Proje Deneme (43 kayıt)")} disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+            <Upload size={14} /> {importing ? "..." : "Proje Deneme"}
+          </button>
           {properties.length > 0 && (
             <button onClick={() => {
               if (!confirm(`Tüm ${properties.length} portföy silinecek. Emin misiniz?`)) return;
