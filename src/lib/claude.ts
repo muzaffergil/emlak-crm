@@ -160,87 +160,70 @@ export function computeMatches(
 
   const wantsBuy = ["aliyor", "satiyor"].includes(clientData.intent);
   const expectedPriceType = wantsBuy ? "satis" : "kira";
+  const roomsArr = clientData.rooms
+    ? (Array.isArray(clientData.rooms) ? clientData.rooms : [clientData.rooms as string]).filter(Boolean)
+    : [];
 
   for (const p of properties) {
-    let score = 0;
     const reasons: string[] = [];
 
-    // Price type match (mandatory-ish)
-    if (p.price_type === expectedPriceType) {
-      score += 20;
-      reasons.push(wantsBuy ? "Satılık" : "Kiralık");
-    } else {
-      score -= 30;
-    }
+    // ── Zorunlu filtreler (biri uyuşmazsa portföy gösterilmez) ──────────────
 
-    // Property type match
-    if (clientData.property_types.length === 0) {
-      score += 20;
+    // Satılık / Kiralık
+    if (p.price_type !== expectedPriceType) continue;
+    reasons.push(wantsBuy ? "Satılık" : "Kiralık");
+
+    // Gayrimenkul tipi
+    if (clientData.property_types.length > 0) {
+      if (!clientData.property_types.some(pt => normalizeText(pt) === normalizeText(p.type))) continue;
       reasons.push(`${p.type} tipi uyuyor`);
-    } else if (clientData.property_types.some(pt => normalizeText(pt) === normalizeText(p.type))) {
-      score += 20;
-      reasons.push(`${p.type} tipi uyuyor`);
-    } else {
-      score -= 30;
     }
 
-    // City match
-    const cityMatch = clientData.cities.length === 0 || clientData.cities.some(c => normalizeText(c) === normalizeText(p.city));
-    if (cityMatch && clientData.cities.length > 0) { score += 20; reasons.push(`${p.city} şehri uyuyor`); }
-    else if (clientData.cities.length > 0) score -= 20;
-
-    // District match
-    if (p.district && clientData.districts.length > 0) {
-      if (clientData.districts.some(d => normalizeText(d) === normalizeText(p.district!))) {
-        score += 15; reasons.push(`${p.district} ilçesi uyuyor`);
-      } else {
-        score -= 15;
-      }
+    // Şehir
+    if (clientData.cities.length > 0) {
+      if (!clientData.cities.some(c => normalizeText(c) === normalizeText(p.city))) continue;
+      reasons.push(`${p.city} şehri uyuyor`);
     }
 
-    // Budget match
-    if (p.price) {
-      const inRange =
-        (!clientData.budget_min || p.price >= clientData.budget_min) &&
-        (!clientData.budget_max || p.price <= clientData.budget_max);
-      if (inRange) { score += 15; reasons.push("Bütçe aralığında"); }
-      else if (clientData.budget_max && p.price > clientData.budget_max * 1.2) score -= 15;
+    // İlçe (portföyde ilçe bilgisi varsa kontrol et)
+    if (clientData.districts.length > 0 && p.district) {
+      if (!clientData.districts.some(d => normalizeText(d) === normalizeText(p.district!))) continue;
+      reasons.push(`${p.district} ilçesi uyuyor`);
     }
 
-    // Size match
-    if (p.size) {
-      const inRange =
-        (!clientData.size_min || p.size >= clientData.size_min) &&
-        (!clientData.size_max || p.size <= clientData.size_max);
-      if (inRange && (clientData.size_min || clientData.size_max)) { score += 10; reasons.push(`${p.size}m² uyuyor`); }
+    // Oda sayısı (portföyde oda bilgisi varsa kontrol et)
+    if (roomsArr.length > 0 && p.rooms) {
+      if (!roomsArr.some(r => normalizeText(r) === normalizeText(p.rooms!))) continue;
+      reasons.push(`${p.rooms} oda sayısı uyuyor`);
     }
 
-    // Rooms match
-    if (clientData.rooms) {
-      const roomsArr = Array.isArray(clientData.rooms) ? clientData.rooms : [clientData.rooms as string];
-      if (roomsArr.length > 0 && p.rooms) {
-        if (roomsArr.some((r) => normalizeText(r) === normalizeText(p.rooms!))) {
-          score += 10; reasons.push(`${p.rooms} oda sayısı uyuyor`);
-        } else {
-          score -= 25;
-        }
-      }
+    // Maksimum bütçe (fiyat bilgisi varsa)
+    if (clientData.budget_max && p.price && p.price > clientData.budget_max) continue;
+
+    // ── Sıralama puanı (filtreden geçenler arasında) ─────────────────────────
+    let score = 50;
+
+    if (p.price && clientData.budget_min && clientData.budget_max) {
+      if (p.price >= clientData.budget_min) { score += 10; reasons.push("Bütçe aralığında"); }
     }
 
-    // Features
+    if (p.size && (clientData.size_min || clientData.size_max)) {
+      const ok = (!clientData.size_min || p.size >= clientData.size_min) &&
+                 (!clientData.size_max || p.size <= clientData.size_max);
+      if (ok) { score += 10; reasons.push(`${p.size}m² uyuyor`); }
+    }
+
     if (clientData.features_wanted.length > 0 && p.features.length > 0) {
       const matched = clientData.features_wanted.filter(fw =>
         p.features.some(pf => normalizeText(pf).includes(normalizeText(fw)) || normalizeText(fw).includes(normalizeText(pf)))
       );
       if (matched.length > 0) {
-        const pts = Math.min(matched.length * 5, 15);
-        score += pts;
+        score += Math.min(matched.length * 5, 20);
         reasons.push(`${matched.join(", ")} özelliği var`);
       }
     }
 
-    const finalScore = Math.max(0, Math.min(100, score));
-    if (finalScore >= 40) results.push({ property_id: p.id, score: finalScore, reasons });
+    results.push({ property_id: p.id, score: Math.min(100, score), reasons });
   }
 
   return results.sort((a, b) => b.score - a.score);
