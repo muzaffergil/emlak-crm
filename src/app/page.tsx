@@ -338,6 +338,18 @@ export default function PortfolioPage() {
             className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
             <Upload size={14} /> {importing ? "..." : "Portföy Takip"}
           </button>
+          {properties.length > 0 && (
+            <button onClick={() => {
+              if (!confirm(`Tüm ${properties.length} portföy silinecek. Emin misiniz?`)) return;
+              localStorage.removeItem("emlak_properties");
+              localStorage.removeItem("emlak_matches");
+              setProperties([]);
+              setImportMsg("Portföy temizlendi.");
+            }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-red-200 rounded-lg text-sm text-red-500 hover:bg-red-50">
+              <Trash2 size={14} /> Temizle
+            </button>
+          )}
           <a href="add-property" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
             + Portföy Ekle
           </a>
