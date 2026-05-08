@@ -102,6 +102,12 @@ export const clientStore = {
     write("emlak_clients", [item, ...items]);
     return item;
   },
+  update(id: number, data: Partial<Omit<Client, "id" | "created_at">>): void {
+    const items = read<Client>("emlak_clients");
+    const idx = items.findIndex((c) => c.id === id);
+    if (idx >= 0) items[idx] = { ...items[idx], ...data };
+    write("emlak_clients", items);
+  },
   delete(id: number): void {
     write(
       "emlak_clients",

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown } from "lucide-react";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil } from "lucide-react";
 import { clientStore, type Client } from "@/lib/storage";
 
 const INTENT_LABELS: Record<string, string> = {
@@ -128,6 +128,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   useEffect(() => { setClients(clientStore.getAll()); }, []);
 
@@ -137,9 +138,37 @@ export default function ClientsPage() {
     setClients((prev) => prev.filter((c) => c.id !== id));
   }
 
+  function startEdit(c: Client) {
+    setEditingId(c.id);
+    setForm({
+      name: c.name,
+      phone: c.phone || "",
+      email: c.email || "",
+      intent: c.intent,
+      property_types: c.property_types,
+      cities: c.cities,
+      districts: c.districts,
+      budget_min: c.budget_min != null ? String(c.budget_min) : "",
+      budget_max: c.budget_max != null ? String(c.budget_max) : "",
+      size_min: c.size_min != null ? String(c.size_min) : "",
+      size_max: c.size_max != null ? String(c.size_max) : "",
+      rooms: c.rooms ?? [],
+      features_wanted: c.features_wanted,
+      notes: c.notes || "",
+    });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm({ ...emptyForm });
+  }
+
   function saveClient(e: React.FormEvent) {
     e.preventDefault();
-    const newClient = clientStore.add({
+    const data = {
       name: form.name,
       phone: form.phone || undefined,
       email: form.email || undefined,
@@ -154,10 +183,16 @@ export default function ClientsPage() {
       rooms: form.rooms.length > 0 ? form.rooms : undefined,
       features_wanted: form.features_wanted,
       notes: form.notes || undefined,
-    });
-    setClients((prev) => [newClient, ...prev]);
-    setForm({ ...emptyForm });
-    setShowForm(false);
+    };
+
+    if (editingId != null) {
+      clientStore.update(editingId, data);
+      setClients(clientStore.getAll());
+    } else {
+      const newClient = clientStore.add(data);
+      setClients((prev) => [newClient, ...prev]);
+    }
+    cancelForm();
   }
 
   return (
@@ -169,7 +204,7 @@ export default function ClientsPage() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">{clients.length} müşteri</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
+        <button onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(!showForm); }}
           className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
           <Plus size={16} /> Müşteri Ekle
         </button>
@@ -177,7 +212,7 @@ export default function ClientsPage() {
 
       {showForm && (
         <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
-          <h2 className="font-semibold text-slate-800 mb-4">Yeni Müşteri / İhtiyaç</h2>
+          <h2 className="font-semibold text-slate-800 mb-4">{editingId != null ? "Müşteriyi Düzenle" : "Yeni Müşteri / İhtiyaç"}</h2>
           <form onSubmit={saveClient} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
@@ -278,8 +313,8 @@ export default function ClientsPage() {
             </div>
 
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50">İptal</button>
-              <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Kaydet</button>
+              <button type="button" onClick={cancelForm} className="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50">İptal</button>
+              <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">{editingId != null ? "Güncelle" : "Kaydet"}</button>
             </div>
           </form>
         </div>
@@ -316,7 +351,10 @@ export default function ClientsPage() {
                   </div>
                   {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
                 </div>
-                <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 ml-3"><Trash2 size={14} /></button>
+                <div className="flex items-center gap-1 ml-3">
+                  <button onClick={() => startEdit(c)} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
+                  <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                </div>
               </div>
             </div>
           ))}
