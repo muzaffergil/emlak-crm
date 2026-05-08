@@ -67,9 +67,17 @@ const now = () => new Date().toLocaleString("tr-TR");
 
 export const propertyStore = {
   getAll(): Property[] {
-    return read<Property>("emlak_properties").sort(
-      (a, b) => b.id - a.id
-    );
+    const items = read<Property>("emlak_properties");
+    let maxId = items.reduce((max, p) => Math.max(max, typeof p.id === "number" ? p.id : 0), 0);
+    let needsUpdate = false;
+    for (const item of items) {
+      if (item.id == null) {
+        item.id = ++maxId;
+        needsUpdate = true;
+      }
+    }
+    if (needsUpdate) write("emlak_properties", items);
+    return items.sort((a, b) => b.id - a.id);
   },
   add(data: Omit<Property, "id" | "created_at">): Property {
     const items = read<Property>("emlak_properties");
