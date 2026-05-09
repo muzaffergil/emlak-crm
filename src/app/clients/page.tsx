@@ -326,38 +326,58 @@ export default function ClientsPage() {
           <p>Henüz müşteri eklenmemiş.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {clients.map((c) => (
-            <div key={c.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-slate-800">{c.name}</h3>
-                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{INTENT_LABELS[c.intent] || c.intent}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
-                    {c.phone && <span className="flex items-center gap-1"><Phone size={11} />{c.phone}</span>}
-                    {c.email && <span className="flex items-center gap-1"><Mail size={11} />{c.email}</span>}
-                  </div>
-                  <div className="flex flex-wrap gap-1 text-xs">
-                    {c.property_types.map((t) => <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
-                    {c.cities.map((city) => <span key={city} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{city}</span>)}
-                    {c.districts.map((d) => <span key={d} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{d}</span>)}
-                    {c.rooms && (Array.isArray(c.rooms) ? c.rooms : [c.rooms]).map((r) => (
-                      <span key={r} className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{r}</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[
+            { label: "Alıcılar", intents: ["aliyor", "kiraciyor"], color: "text-green-700 bg-green-50 border-green-200" },
+            { label: "Satıcılar", intents: ["satiyor", "kiraya_veriyor"], color: "text-blue-700 bg-blue-50 border-blue-200" },
+          ].map(({ label, intents, color }) => {
+            const group = clients.filter((c) => intents.includes(c.intent));
+            return (
+              <div key={label}>
+                <div className={`flex items-center justify-between px-3 py-2 rounded-lg border mb-3 ${color}`}>
+                  <span className="font-semibold text-sm">{label}</span>
+                  <span className="text-xs font-medium">{group.length} kişi</span>
+                </div>
+                {group.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6">Kayıt yok</p>
+                ) : (
+                  <div className="space-y-3">
+                    {group.map((c) => (
+                      <div key={c.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-slate-800">{c.name}</h3>
+                              <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{INTENT_LABELS[c.intent] || c.intent}</span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
+                              {c.phone && <span className="flex items-center gap-1"><Phone size={11} />{c.phone}</span>}
+                              {c.email && <span className="flex items-center gap-1"><Mail size={11} />{c.email}</span>}
+                            </div>
+                            <div className="flex flex-wrap gap-1 text-xs">
+                              {c.property_types.map((t) => <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
+                              {c.cities.map((city) => <span key={city} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{city}</span>)}
+                              {c.districts.map((d) => <span key={d} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{d}</span>)}
+                              {c.rooms && (Array.isArray(c.rooms) ? c.rooms : [c.rooms]).map((r) => (
+                                <span key={r} className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{r}</span>
+                              ))}
+                              {c.budget_max && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">max {c.budget_max.toLocaleString("tr-TR")} ₺</span>}
+                              {c.features_wanted.map((f) => <span key={f} className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">{f}</span>)}
+                            </div>
+                            {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
+                          </div>
+                          <div className="flex items-center gap-1 ml-3">
+                            <button onClick={() => startEdit(c)} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
+                            <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                    {c.budget_max && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">max {c.budget_max.toLocaleString("tr-TR")} ₺</span>}
-                    {c.features_wanted.map((f) => <span key={f} className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">{f}</span>)}
                   </div>
-                  {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
-                </div>
-                <div className="flex items-center gap-1 ml-3">
-                  <button onClick={() => startEdit(c)} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
-                  <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
