@@ -15,6 +15,8 @@ export interface Property {
   description?: string;
   status: string;
   raw_text?: string;
+  owner_name?: string;
+  owner_phone?: string;
   created_at: string;
 }
 

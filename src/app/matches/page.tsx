@@ -43,15 +43,27 @@ function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: 
 
         {/* Body */}
         <div className="p-4 space-y-4">
-          {/* Müşteri bilgisi */}
-          <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
-            <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0">
-              <span className="text-amber-800 font-bold text-sm">{clientName.charAt(0)}</span>
+          {/* Müşteri + Sahip bilgisi */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+              <div className="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-amber-800 font-bold text-xs">{clientName.charAt(0)}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-amber-600 font-medium">Müşteri</p>
+                <p className="font-semibold text-amber-900 text-sm truncate">{clientName}</p>
+                {clientPhone && <p className="text-xs text-amber-700 flex items-center gap-1"><Phone size={10} />{clientPhone}</p>}
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-amber-600 font-medium">Eşleşen Müşteri</p>
-              <p className="font-semibold text-amber-900 text-sm">{clientName}</p>
-              {clientPhone && <p className="text-xs text-amber-700 flex items-center gap-1"><Phone size={10} />{clientPhone}</p>}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+              <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-slate-600 font-bold text-xs">{property.owner_name?.charAt(0) ?? "?"}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500 font-medium">Sahibi</p>
+                <p className="font-semibold text-slate-800 text-sm truncate">{property.owner_name || "—"}</p>
+                {property.owner_phone && <p className="text-xs text-slate-600 flex items-center gap-1"><Phone size={10} />{property.owner_phone}</p>}
+              </div>
             </div>
           </div>
 

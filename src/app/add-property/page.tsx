@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   neighborhood: "", price: "", price_type: "",
   size: "", rooms: "", floor: "", total_floors: "",
   status: "", description: "", features: "",
+  owner_name: "", owner_phone: "",
 };
 
 const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300";
@@ -171,6 +172,8 @@ export default function AddPropertyPage() {
         status: form.status || "musait",
         description: form.description.trim() || undefined,
         features: form.features.split(",").map(s => s.trim()).filter(Boolean),
+        owner_name: form.owner_name.trim() || undefined,
+        owner_phone: form.owner_phone.trim() || undefined,
       });
       setAdded(prev => [property, ...prev]);
       setForm({ ...EMPTY_FORM });
@@ -304,6 +307,20 @@ export default function AddPropertyPage() {
             <label className={labelCls}>Özellikler (virgülle ayırın)</label>
             <input className={inputCls} value={form.features} onChange={e => f("features", e.target.value)}
               placeholder="ör. balkon, otopark, asansör, güvenlik" />
+          </div>
+
+          {/* Sahip Bilgisi */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Sahibi / İletişim Adı</label>
+              <input className={inputCls} value={form.owner_name} onChange={e => f("owner_name", e.target.value)}
+                placeholder="ör. Ahmet Yılmaz" />
+            </div>
+            <div>
+              <label className={labelCls}>Sahibi Telefon</label>
+              <input className={inputCls} value={form.owner_phone} onChange={e => f("owner_phone", e.target.value)}
+                placeholder="ör. 0532 123 45 67" />
+            </div>
           </div>
 
           {/* Açıklama */}
