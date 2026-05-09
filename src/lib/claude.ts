@@ -191,10 +191,11 @@ export function computeMatches(
       reasons.push(`${p.district} ilçesi uyuyor`);
     }
 
-    // Oda sayısı (portföyde oda bilgisi varsa kontrol et)
-    if (roomsArr.length > 0 && p.rooms) {
-      if (!roomsArr.some(r => normalizeText(r) === normalizeText(p.rooms!))) continue;
-      reasons.push(`${p.rooms} oda sayısı uyuyor`);
+    // Oda sayısı — rooms alanı boşsa başlıktan çıkart
+    const effectiveRooms = p.rooms || p.title?.match(/(\d+\+\d+)/)?.[1];
+    if (roomsArr.length > 0 && effectiveRooms) {
+      if (!roomsArr.some(r => normalizeText(r) === normalizeText(effectiveRooms))) continue;
+      reasons.push(`${effectiveRooms} oda sayısı uyuyor`);
     }
 
     // Maksimum bütçe (fiyat bilgisi varsa)
