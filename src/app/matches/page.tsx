@@ -22,7 +22,7 @@ const TYPE_LABELS: Record<string, string> = {
   ofis: "Ofis", depo: "Depo", bina: "Bina",
 };
 
-function PropertyModal({ property, reasons, onClose }: { property: Property; reasons: string[]; onClose: () => void }) {
+function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: { property: Property; reasons: string[]; clientName: string; clientPhone?: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
@@ -43,6 +43,18 @@ function PropertyModal({ property, reasons, onClose }: { property: Property; rea
 
         {/* Body */}
         <div className="p-4 space-y-4">
+          {/* Müşteri bilgisi */}
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+            <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0">
+              <span className="text-amber-800 font-bold text-sm">{clientName.charAt(0)}</span>
+            </div>
+            <div>
+              <p className="text-xs text-amber-600 font-medium">Eşleşen Müşteri</p>
+              <p className="font-semibold text-amber-900 text-sm">{clientName}</p>
+              {clientPhone && <p className="text-xs text-amber-700 flex items-center gap-1"><Phone size={10} />{clientPhone}</p>}
+            </div>
+          </div>
+
           {/* Fiyat + Temel bilgiler */}
           <div className="grid grid-cols-2 gap-3">
             {property.price && (
@@ -294,6 +306,7 @@ export default function MatchesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-slate-800 text-sm">{m.property_title}</p>
+                      <p className="text-xs text-amber-600 font-medium">{m.client_name}{m.client_phone && ` · ${m.client_phone}`}</p>
                       <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
                         <span className="flex items-center gap-1"><MapPin size={11} />{[m.property_district, m.property_city].filter(Boolean).join(", ")}</span>
                         {m.price && <span className="flex items-center gap-1"><TrendingUp size={11} />{m.price.toLocaleString("tr-TR")} ₺{m.price_type === "kira" ? "/ay" : ""}</span>}
@@ -321,6 +334,8 @@ export default function MatchesPage() {
         <PropertyModal
           property={selected.property}
           reasons={selected.reasons}
+          clientName={selected.client_name}
+          clientPhone={selected.client_phone}
           onClose={() => setSelected(null)}
         />
       )}
