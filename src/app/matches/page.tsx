@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Zap, RefreshCw, Star, MapPin, TrendingUp } from "lucide-react";
-import { clientStore, propertyStore, matchStore, type Match } from "@/lib/storage";
+import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone } from "lucide-react";
+import { clientStore, propertyStore, matchStore, type Match, type Property } from "@/lib/storage";
 import { computeMatches } from "@/lib/claude";
 
 interface RichMatch extends Match {
@@ -14,6 +14,129 @@ interface RichMatch extends Match {
   price_type?: string;
   size?: number;
   rooms?: string;
+  property?: Property;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  daire: "Daire", villa: "Villa", arsa: "Arsa", dükkan: "Dükkan",
+  ofis: "Ofis", depo: "Depo", bina: "Bina",
+};
+
+function PropertyModal({ property, reasons, onClose }: { property: Property; reasons: string[]; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-2xl z-10">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="font-bold text-slate-800 text-base leading-snug">{property.title}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{[property.district, property.neighborhood, property.city].filter(Boolean).join(" / ")}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 flex-shrink-0">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 space-y-4">
+          {/* Fiyat + Temel bilgiler */}
+          <div className="grid grid-cols-2 gap-3">
+            {property.price && (
+              <div className="bg-amber-50 rounded-xl p-3">
+                <p className="text-xs text-amber-600 font-medium mb-0.5">Fiyat</p>
+                <p className="font-bold text-amber-800 text-sm">
+                  {property.price.toLocaleString("tr-TR")} ₺{property.price_type === "kira" ? "/ay" : ""}
+                </p>
+              </div>
+            )}
+            {property.size && (
+              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+                <Ruler size={15} className="text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Alan</p>
+                  <p className="font-semibold text-slate-700 text-sm">{property.size} m²</p>
+                </div>
+              </div>
+            )}
+            {property.rooms && (
+              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+                <BedDouble size={15} className="text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Oda</p>
+                  <p className="font-semibold text-slate-700 text-sm">{property.rooms}</p>
+                </div>
+              </div>
+            )}
+            <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+              <Home size={15} className="text-slate-400" />
+              <div>
+                <p className="text-xs text-slate-500">Tip</p>
+                <p className="font-semibold text-slate-700 text-sm">{TYPE_LABELS[property.type] || property.type}</p>
+              </div>
+            </div>
+            {(property.floor || property.total_floors) && (
+              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+                <Building2 size={15} className="text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Kat</p>
+                  <p className="font-semibold text-slate-700 text-sm">
+                    {property.floor}{property.total_floors ? `/${property.total_floors}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
+              <Tag size={15} className="text-slate-400" />
+              <div>
+                <p className="text-xs text-slate-500">Durum</p>
+                <p className="font-semibold text-slate-700 text-sm capitalize">
+                  {property.price_type === "kira" ? "Kiralık" : "Satılık"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Özellikler */}
+          {property.features.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Özellikler</p>
+              <div className="flex flex-wrap gap-1.5">
+                {property.features.map((f) => (
+                  <span key={f} className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full capitalize">{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Eşleşme nedenleri */}
+          {reasons.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Eşleşme Nedenleri</p>
+              <div className="flex flex-wrap gap-1.5">
+                {reasons.map((r, i) => (
+                  <span key={i} className="bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full">{r}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ham metin / açıklama */}
+          {(property.description || property.raw_text) && (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1"><FileText size={11} /> Açıklama</p>
+              <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-3 whitespace-pre-wrap">
+                {property.raw_text || property.description}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function MatchesPage() {
@@ -21,6 +144,7 @@ export default function MatchesPage() {
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [selected, setSelected] = useState<RichMatch | null>(null);
 
   function loadMatches() {
     const rawMatches = matchStore.getAll();
@@ -40,6 +164,7 @@ export default function MatchesPage() {
         price_type: p?.price_type,
         size: p?.size,
         rooms: p?.rooms,
+        property: p,
       };
     });
     setMatches(rich.sort((a, b) => b.score - a.score));
@@ -134,7 +259,7 @@ export default function MatchesPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
-          {error} — <a href="settings" className="underline">API anahtarını kontrol edin</a>
+          {error}
         </div>
       )}
 
@@ -151,13 +276,19 @@ export default function MatchesPage() {
               <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-800">{clientName}</h3>
-                  {clientMatches[0]?.client_phone && <p className="text-xs text-slate-500">{clientMatches[0].client_phone}</p>}
+                  {clientMatches[0]?.client_phone && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1"><Phone size={10} />{clientMatches[0].client_phone}</p>
+                  )}
                 </div>
                 <span className="text-xs text-slate-500">{clientMatches.length} eşleşme</span>
               </div>
               <div className="divide-y divide-slate-100">
                 {clientMatches.map((m) => (
-                  <div key={m.id} className="px-4 py-3 flex items-start gap-3">
+                  <button
+                    key={m.id}
+                    onClick={() => setSelected(m)}
+                    className="w-full px-4 py-3 flex items-start gap-3 hover:bg-amber-50 transition-colors text-left"
+                  >
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-bold flex-shrink-0 ${scoreColor(m.score)}`}>
                       <Star size={12} /> {m.score}
                     </div>
@@ -177,12 +308,21 @@ export default function MatchesPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                    <span className="text-slate-300 text-xs self-center flex-shrink-0">›</span>
+                  </button>
                 ))}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {selected?.property && (
+        <PropertyModal
+          property={selected.property}
+          reasons={selected.reasons}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
