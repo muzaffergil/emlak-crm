@@ -45,7 +45,7 @@ export default function MatchesPage() {
     setMatches(rich.sort((a, b) => b.score - a.score));
   }
 
-  useEffect(() => { loadMatches(); }, []);
+  useEffect(() => { runMatch(); }, []);
 
   function runMatch() {
     setRunning(true);
