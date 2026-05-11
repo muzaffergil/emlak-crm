@@ -24,6 +24,8 @@ function EditModal({ property, onClose, onSave }: {
     status: property.status,
     description: property.description || "",
     features: property.features.join(", "),
+    owner_name: property.owner_name || "",
+    owner_phone: property.owner_phone || "",
   });
 
   function f(key: keyof typeof form, val: string) {
@@ -47,6 +49,8 @@ function EditModal({ property, onClose, onSave }: {
       status: form.status,
       description: form.description.trim() || undefined,
       features: form.features.split(",").map(s => s.trim()).filter(Boolean),
+      owner_name: form.owner_name.trim() || undefined,
+      owner_phone: form.owner_phone.trim() || undefined,
     };
     propertyStore.update(property.id, updated);
     onSave(updated);
@@ -132,6 +136,15 @@ function EditModal({ property, onClose, onSave }: {
             <div className="md:col-span-2">
               <label className={labelCls}>Özellikler (virgülle ayırın)</label>
               <input className={inputCls} value={form.features} onChange={e => f("features", e.target.value)} placeholder="balkon, otopark, asansör" />
+            </div>
+
+            <div>
+              <label className={labelCls}>Sahip Adı</label>
+              <input className={inputCls} value={form.owner_name} onChange={e => f("owner_name", e.target.value)} placeholder="Sahip adı soyadı" />
+            </div>
+            <div>
+              <label className={labelCls}>Sahip Telefonu</label>
+              <input className={inputCls} value={form.owner_phone} onChange={e => f("owner_phone", e.target.value)} placeholder="05xx xxx xx xx" />
             </div>
 
             <div className="md:col-span-2">
