@@ -136,6 +136,7 @@ export function computeMatches(
     property_types: string[];
     cities: string[];
     districts: string[];
+    neighborhoods: string[];
     budget_min?: number;
     budget_max?: number;
     size_min?: number;
@@ -188,6 +189,18 @@ export function computeMatches(
     if (clientData.districts.length > 0 && p.district) {
       if (!clientData.districts.some(d => normalizeText(d) === normalizeText(p.district!))) continue;
       reasons.push(`${p.district} ilçesi uyuyor`);
+    }
+
+    // Mahalle
+    if (clientData.neighborhoods.length > 0 && p.neighborhood) {
+      const propNeighNorm = normalizeText(p.neighborhood);
+      const matches = clientData.neighborhoods.some(n => {
+        const parts = n.split(" - ");
+        const mahalleNorm = normalizeText(parts[parts.length - 1]);
+        return propNeighNorm === mahalleNorm || propNeighNorm.includes(mahalleNorm) || mahalleNorm.includes(propNeighNorm);
+      });
+      if (!matches) continue;
+      reasons.push(`${p.neighborhood} mahallesi uyuyor`);
     }
 
     // Oda sayısı — rooms alanı boşsa başlıktan çıkart

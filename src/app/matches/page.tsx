@@ -226,6 +226,7 @@ export default function MatchesPage() {
             property_types: c.property_types,
             cities: c.cities,
             districts: c.districts,
+            neighborhoods: c.neighborhoods ?? [],
             budget_min: c.budget_min,
             budget_max: c.budget_max,
             size_min: c.size_min,

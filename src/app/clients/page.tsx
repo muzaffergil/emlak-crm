@@ -14,6 +14,28 @@ const ROOMS_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "5+2", "6+1"];
 const PROPERTY_TYPE_OPTIONS = ["Daire", "Villa", "Müstakil Ev", "Arsa", "Dükkan", "Ofis", "Bina", "Depo", "Tarla"];
 const CITY_OPTIONS = ["Gaziantep", "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Kocaeli", "Mersin", "Diyarbakır", "Eskişehir", "Samsun", "Denizli", "Trabzon", "Kayseri", "Malatya", "Balıkesir"];
 const DISTRICT_OPTIONS = ["Şahinbey", "Şehitkamil", "Araban", "İslahiye", "Karkamış", "Nizip", "Nurdağı", "Oğuzeli", "Yavuzeli"];
+
+const NEIGHBORHOODS_BY_DISTRICT: Record<string, string[]> = {
+  "Şahinbey": [
+    "Akkent", "Bağlarbaşı", "Bey", "Bostancık", "Büyük Kayalı", "Çukur", "Dülük",
+    "Ertuğrul Gazi", "Esentepe", "Gazikent", "Güvenevler", "Hoşgör", "İbrahimli",
+    "Karataş", "Karagöz", "Kozluca", "Küçük Kayalı", "Mücahitler", "Narlık",
+    "Suburcu", "Süslü", "Ünaldı", "Yavuzlar",
+  ],
+  "Şehitkamil": [
+    "75. Yıl", "Bahçelievler", "Batıkent", "Beylerbeyi", "Çamlıca", "Çıksorut",
+    "Düztepe", "Emek", "Güneykent", "Harapaşa", "Huzurevleri", "İncilipınar",
+    "Karşıyaka", "Mehmet Akif", "Mimar Sinan", "Seyrantepe", "Türktepe",
+    "Üniversite", "Yamaçtepe", "Yeşilvadi",
+  ],
+  "Nizip": ["Barak", "Nizip Merkez"],
+  "İslahiye": ["İslahiye Merkez"],
+  "Araban": ["Araban Merkez"],
+  "Karkamış": ["Karkamış Merkez"],
+  "Nurdağı": ["Nurdağı Merkez"],
+  "Oğuzeli": ["Oğuzeli Merkez"],
+  "Yavuzeli": ["Yavuzeli Merkez"],
+};
 const FEATURE_OPTIONS = ["Balkon", "Teras", "Bahçe", "Otopark", "Garaj", "Asansör", "Güvenlik", "Site içi", "Havuz", "Spor salonu", "Sauna", "Ebeveyn banyosu", "Amerikan mutfak", "Doğalgaz", "Kombi", "Klima", "Depolu", "Deniz manzarası", "Şehir manzarası", "Yeni bina", "Sıfır", "Krediye uygun"];
 
 function MultiCheckboxDropdown({
@@ -115,6 +137,7 @@ const emptyForm = {
   property_types: [] as string[],
   cities: [] as string[],
   districts: [] as string[],
+  neighborhoods: [] as string[],
   budget_min: "",
   budget_max: "",
   size_min: "",
@@ -148,6 +171,7 @@ export default function ClientsPage() {
       property_types: c.property_types,
       cities: c.cities,
       districts: c.districts,
+      neighborhoods: c.neighborhoods ?? [],
       budget_min: c.budget_min != null ? String(c.budget_min) : "",
       budget_max: c.budget_max != null ? String(c.budget_max) : "",
       size_min: c.size_min != null ? String(c.size_min) : "",
@@ -176,6 +200,7 @@ export default function ClientsPage() {
       property_types: form.property_types,
       cities: form.cities,
       districts: form.districts,
+      neighborhoods: form.neighborhoods,
       budget_min: form.budget_min ? Number(form.budget_min) : undefined,
       budget_max: form.budget_max ? Number(form.budget_max) : undefined,
       size_min: form.size_min ? Number(form.size_min) : undefined,
@@ -280,9 +305,23 @@ export default function ClientsPage() {
                   placeholder="Şahinbey, Şehitkamil..."
                   options={DISTRICT_OPTIONS}
                   selected={form.districts}
-                  onChange={(v) => setForm((p) => ({ ...p, districts: v }))}
+                  onChange={(v) => setForm((p) => ({ ...p, districts: v, neighborhoods: p.neighborhoods.filter(n => Object.entries(NEIGHBORHOODS_BY_DISTRICT).filter(([d]) => v.includes(d)).flatMap(([,ns]) => ns).includes(n)) }))}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Mahalleler</label>
+              <MultiCheckboxDropdown
+                placeholder="Mahalle seçin..."
+                options={
+                  form.districts.length > 0
+                    ? form.districts.flatMap(d => (NEIGHBORHOODS_BY_DISTRICT[d] || []).map(n => `${d} - ${n}`))
+                    : Object.entries(NEIGHBORHOODS_BY_DISTRICT).flatMap(([d, ns]) => ns.map(n => `${d} - ${n}`))
+                }
+                selected={form.neighborhoods}
+                onChange={(v) => setForm((p) => ({ ...p, neighborhoods: v }))}
+              />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -358,6 +397,7 @@ export default function ClientsPage() {
                               {c.property_types.map((t) => <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
                               {c.cities.map((city) => <span key={city} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{city}</span>)}
                               {c.districts.map((d) => <span key={d} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{d}</span>)}
+                              {(c.neighborhoods ?? []).map((n) => <span key={n} className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{n}</span>)}
                               {c.rooms && (Array.isArray(c.rooms) ? c.rooms : [c.rooms]).map((r) => (
                                 <span key={r} className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{r}</span>
                               ))}

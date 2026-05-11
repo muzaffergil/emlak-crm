@@ -29,6 +29,7 @@ export interface Client {
   property_types: string[];
   cities: string[];
   districts: string[];
+  neighborhoods: string[];
   budget_min?: number;
   budget_max?: number;
   size_min?: number;
