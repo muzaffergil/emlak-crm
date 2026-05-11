@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 export interface Property {
   id: number;
   title: string;
@@ -49,112 +51,214 @@ export interface Match {
   created_at: string;
 }
 
-function read<T>(key: string): T[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
-    return [];
-  }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toProperty(r: any): Property {
+  return {
+    id: Number(r.id),
+    title: r.title,
+    type: r.type,
+    city: r.city,
+    district: r.district ?? undefined,
+    neighborhood: r.neighborhood ?? undefined,
+    price: r.price != null ? Number(r.price) : undefined,
+    price_type: r.price_type,
+    size: r.size != null ? Number(r.size) : undefined,
+    rooms: r.rooms ?? undefined,
+    floor: r.floor != null ? Number(r.floor) : undefined,
+    total_floors: r.total_floors != null ? Number(r.total_floors) : undefined,
+    features: Array.isArray(r.features) ? r.features : [],
+    description: r.description ?? undefined,
+    status: r.status,
+    raw_text: r.raw_text ?? undefined,
+    owner_name: r.owner_name ?? undefined,
+    owner_phone: r.owner_phone ?? undefined,
+    created_at: r.created_at,
+  };
 }
 
-function write<T>(key: string, data: T[]): void {
-  localStorage.setItem(key, JSON.stringify(data));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toClient(r: any): Client {
+  return {
+    id: Number(r.id),
+    name: r.name,
+    phone: r.phone ?? undefined,
+    email: r.email ?? undefined,
+    intent: r.intent,
+    property_types: Array.isArray(r.property_types) ? r.property_types : [],
+    cities: Array.isArray(r.cities) ? r.cities : [],
+    districts: Array.isArray(r.districts) ? r.districts : [],
+    neighborhoods: Array.isArray(r.neighborhoods) ? r.neighborhoods : [],
+    budget_min: r.budget_min != null ? Number(r.budget_min) : undefined,
+    budget_max: r.budget_max != null ? Number(r.budget_max) : undefined,
+    size_min: r.size_min != null ? Number(r.size_min) : undefined,
+    size_max: r.size_max != null ? Number(r.size_max) : undefined,
+    rooms: Array.isArray(r.rooms) && r.rooms.length > 0 ? r.rooms : undefined,
+    features_wanted: Array.isArray(r.features_wanted) ? r.features_wanted : [],
+    notes: r.notes ?? undefined,
+    created_at: r.created_at,
+  };
 }
 
-function nextId<T extends { id: number }>(items: T[]): number {
-  return items.length === 0 ? 1 : Math.max(...items.map((i) => i.id)) + 1;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toMatch(r: any): Match {
+  return {
+    id: Number(r.id),
+    client_id: Number(r.client_id),
+    property_id: Number(r.property_id),
+    score: Number(r.score),
+    reasons: Array.isArray(r.reasons) ? r.reasons : [],
+    created_at: r.created_at,
+  };
 }
-
-const now = () => new Date().toLocaleString("tr-TR");
 
 export const propertyStore = {
-  getAll(): Property[] {
-    const items = read<Property>("emlak_properties");
-    let maxId = items.reduce((max, p) => Math.max(max, typeof p.id === "number" ? p.id : 0), 0);
-    let needsUpdate = false;
-    for (const item of items) {
-      if (item.id == null) {
-        item.id = ++maxId;
-        needsUpdate = true;
-      }
-    }
-    if (needsUpdate) write("emlak_properties", items);
-    return items.sort((a, b) => b.id - a.id);
+  async getAll(): Promise<Property[]> {
+    const { data, error } = await supabase
+      .from("properties")
+      .select("*")
+      .order("id", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toProperty);
   },
-  add(data: Omit<Property, "id" | "created_at">): Property {
-    const items = read<Property>("emlak_properties");
-    const item: Property = { ...data, id: nextId(items), created_at: now() };
-    write("emlak_properties", [item, ...items]);
-    return item;
+
+  async add(data: Omit<Property, "id" | "created_at">): Promise<Property> {
+    const { data: row, error } = await supabase
+      .from("properties")
+      .insert([data])
+      .select()
+      .single();
+    if (error) throw error;
+    return toProperty(row);
   },
-  update(id: number, data: Partial<Omit<Property, "id" | "created_at">>): void {
-    const items = read<Property>("emlak_properties");
-    const idx = items.findIndex((p) => p.id === id);
-    if (idx >= 0) items[idx] = { ...items[idx], ...data };
-    write("emlak_properties", items);
+
+  async addMany(items: Omit<Property, "id" | "created_at">[]): Promise<Property[]> {
+    if (items.length === 0) return [];
+    const { data, error } = await supabase
+      .from("properties")
+      .insert(items)
+      .select();
+    if (error) throw error;
+    return (data ?? []).map(toProperty);
   },
-  delete(id: number): void {
-    write(
-      "emlak_properties",
-      read<Property>("emlak_properties").filter((p) => p.id !== id)
-    );
-    matchStore.deleteByProperty(id);
+
+  async update(id: number, data: Partial<Omit<Property, "id" | "created_at">>): Promise<void> {
+    const { error } = await supabase
+      .from("properties")
+      .update(data)
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase
+      .from("properties")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async deleteAll(): Promise<void> {
+    const { error } = await supabase
+      .from("properties")
+      .delete()
+      .gte("id", 0);
+    if (error) throw error;
   },
 };
 
 export const clientStore = {
-  getAll(): Client[] {
-    return read<Client>("emlak_clients").sort((a, b) => b.id - a.id);
+  async getAll(): Promise<Client[]> {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("id", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toClient);
   },
-  add(data: Omit<Client, "id" | "created_at">): Client {
-    const items = read<Client>("emlak_clients");
-    const item: Client = { ...data, id: nextId(items), created_at: now() };
-    write("emlak_clients", [item, ...items]);
-    return item;
+
+  async add(data: Omit<Client, "id" | "created_at">): Promise<Client> {
+    const { data: row, error } = await supabase
+      .from("clients")
+      .insert([data])
+      .select()
+      .single();
+    if (error) throw error;
+    return toClient(row);
   },
-  update(id: number, data: Partial<Omit<Client, "id" | "created_at">>): void {
-    const items = read<Client>("emlak_clients");
-    const idx = items.findIndex((c) => c.id === id);
-    if (idx >= 0) items[idx] = { ...items[idx], ...data };
-    write("emlak_clients", items);
+
+  async addMany(items: Omit<Client, "id" | "created_at">[]): Promise<Client[]> {
+    if (items.length === 0) return [];
+    const { data, error } = await supabase
+      .from("clients")
+      .insert(items)
+      .select();
+    if (error) throw error;
+    return (data ?? []).map(toClient);
   },
-  delete(id: number): void {
-    write(
-      "emlak_clients",
-      read<Client>("emlak_clients").filter((c) => c.id !== id)
-    );
-    matchStore.deleteByClient(id);
+
+  async update(id: number, data: Partial<Omit<Client, "id" | "created_at">>): Promise<void> {
+    const { error } = await supabase
+      .from("clients")
+      .update(data)
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async deleteAll(): Promise<void> {
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .gte("id", 0);
+    if (error) throw error;
   },
 };
 
 export const matchStore = {
-  getAll(): Match[] {
-    return read<Match>("emlak_matches");
+  async getAll(): Promise<Match[]> {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .order("score", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toMatch);
   },
-  upsert(data: Omit<Match, "id" | "created_at">): void {
-    const items = read<Match>("emlak_matches");
-    const existing = items.findIndex(
-      (m) => m.client_id === data.client_id && m.property_id === data.property_id
-    );
-    if (existing >= 0) {
-      items[existing] = { ...items[existing], score: data.score, reasons: data.reasons };
-    } else {
-      items.push({ ...data, id: nextId(items), created_at: now() });
-    }
-    write("emlak_matches", items);
+
+  async insertMany(items: Omit<Match, "id" | "created_at">[]): Promise<void> {
+    if (items.length === 0) return;
+    const { error } = await supabase.from("matches").insert(items);
+    if (error) throw error;
   },
-  deleteByClient(client_id: number): void {
-    write(
-      "emlak_matches",
-      read<Match>("emlak_matches").filter((m) => m.client_id !== client_id)
-    );
+
+  async deleteByClient(clientId: number): Promise<void> {
+    const { error } = await supabase
+      .from("matches")
+      .delete()
+      .eq("client_id", clientId);
+    if (error) throw error;
   },
-  deleteByProperty(property_id: number): void {
-    write(
-      "emlak_matches",
-      read<Match>("emlak_matches").filter((m) => m.property_id !== property_id)
-    );
+
+  async deleteByProperty(propertyId: number): Promise<void> {
+    const { error } = await supabase
+      .from("matches")
+      .delete()
+      .eq("property_id", propertyId);
+    if (error) throw error;
+  },
+
+  async deleteAll(): Promise<void> {
+    const { error } = await supabase
+      .from("matches")
+      .delete()
+      .gte("id", 0);
+    if (error) throw error;
   },
 };
 

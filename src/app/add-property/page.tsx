@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MessageSquare, ClipboardList, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { parsePropertyFromText } from "@/lib/claude";
 import { propertyStore, type Property } from "@/lib/storage";
@@ -56,33 +56,6 @@ function PillGroup({ label, options, value, onChange }: {
   );
 }
 
-function MultiPill({ label, options, values, onChange }: {
-  label: string;
-  options: string[];
-  values: string[];
-  onChange: (v: string[]) => void;
-}) {
-  return (
-    <div>
-      <p className={labelCls}>{label}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(o => {
-          const active = values.includes(o);
-          return (
-            <button key={o} type="button"
-              onClick={() => onChange(active ? values.filter(v => v !== o) : [...values, o])}
-              className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${active
-                ? "bg-amber-500 text-white border-amber-500"
-                : "bg-white text-slate-600 border-slate-200 hover:border-amber-300"}`}>
-              {o}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function AddedCard({ p }: { p: Property }) {
   return (
     <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
@@ -119,18 +92,20 @@ export default function AddPropertyPage() {
   const [customRooms, setCustomRooms] = useState("");
   const [formError, setFormError] = useState("");
   const [added, setAdded] = useState<Property[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   function f(key: keyof typeof EMPTY_FORM, val: string) {
     setForm(prev => ({ ...prev, [key]: val }));
   }
 
-  function handleTextSubmit(e: React.FormEvent) {
+  async function handleTextSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
     setTextError("");
+    setSubmitting(true);
     try {
       const parsed = parsePropertyFromText(text);
-      const property = propertyStore.add({
+      const property = await propertyStore.add({
         title: parsed.title, type: parsed.type, city: parsed.city,
         district: parsed.district, neighborhood: parsed.neighborhood,
         price: parsed.price, price_type: parsed.price_type || "satis",
@@ -142,16 +117,19 @@ export default function AddPropertyPage() {
       setText("");
     } catch (err) {
       setTextError(err instanceof Error ? err.message : "Bir hata oluştu");
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  function handleFormSubmit(e: React.FormEvent) {
+  async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError("");
     if (!form.title.trim()) { setFormError("Başlık zorunludur."); return; }
     const finalRooms = customRooms.trim() || formRooms.join(", ") || undefined;
+    setSubmitting(true);
     try {
-      const property = propertyStore.add({
+      const property = await propertyStore.add({
         title: form.title.trim(),
         type: form.type || "daire",
         city: form.city.trim() || "Gaziantep",
@@ -175,6 +153,8 @@ export default function AddPropertyPage() {
       setCustomRooms("");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Bir hata oluştu");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -317,9 +297,9 @@ export default function AddPropertyPage() {
           )}
 
           <div className="flex justify-end">
-            <button type="submit"
-              className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-              <ArrowRight size={16} /> Portföye Ekle
+            <button type="submit" disabled={submitting}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-60">
+              <ArrowRight size={16} /> {submitting ? "Ekleniyor..." : "Portföye Ekle"}
             </button>
           </div>
         </form>
@@ -340,9 +320,9 @@ export default function AddPropertyPage() {
             )}
             <div className="flex justify-between items-center mt-3">
               <p className="text-xs text-slate-400">Otomatik metin çözümleme</p>
-              <button type="submit" disabled={!text.trim()}
+              <button type="submit" disabled={!text.trim() || submitting}
                 className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
-                <ArrowRight size={16} /> Ekle
+                <ArrowRight size={16} /> {submitting ? "Ekleniyor..." : "Ekle"}
               </button>
             </div>
           </form>

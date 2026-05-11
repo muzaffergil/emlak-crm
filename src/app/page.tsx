@@ -28,12 +28,14 @@ function EditModal({ property, onClose, onSave }: {
     owner_name: property.owner_name || "",
     owner_phone: property.owner_phone || "",
   });
+  const [saving, setSaving] = useState(false);
 
   function f(key: keyof typeof form, val: string) {
     setForm(prev => ({ ...prev, [key]: val }));
   }
 
-  function handleSave() {
+  async function handleSave() {
+    setSaving(true);
     const updated: Property = {
       ...property,
       title: form.title.trim() || property.title,
@@ -53,8 +55,12 @@ function EditModal({ property, onClose, onSave }: {
       owner_name: form.owner_name.trim() || undefined,
       owner_phone: form.owner_phone.trim() || undefined,
     };
-    propertyStore.update(property.id, updated);
-    onSave(updated);
+    try {
+      await propertyStore.update(property.id, updated);
+      onSave(updated);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const inputCls = "w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300";
@@ -154,7 +160,9 @@ function EditModal({ property, onClose, onSave }: {
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">İptal</button>
-          <button onClick={handleSave} className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium">Kaydet</button>
+          <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-60">
+            {saving ? "Kaydediliyor..." : "Kaydet"}
+          </button>
         </div>
       </div>
     </div>
@@ -238,13 +246,19 @@ function RadioGroup({ label, options, value, onChange }: {
 
 export default function PortfolioPage() {
   const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState("");
   const [editing, setEditing] = useState<Property | null>(null);
 
-  useEffect(() => { setProperties(propertyStore.getAll()); }, []);
+  useEffect(() => {
+    propertyStore.getAll().then(data => {
+      setProperties(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
   // Dinamik seçenekler
   const options = useMemo(() => {
@@ -294,20 +308,27 @@ export default function PortfolioPage() {
       const base = window.location.pathname.includes("/emlak-crm") ? "/emlak-crm" : "";
       const res = await fetch(`${base}/${file}`);
       const data = await res.json();
-      const existing = propertyStore.getAll();
+      const existing = await propertyStore.getAll();
       const existingKeys = new Set(
         existing.map(p => `${p.title}|${p.price}|${p.city}|${p.district}`)
       );
-      let added = 0, skipped = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const toAdd: Omit<Property, "id" | "created_at">[] = [];
+      let skipped = 0;
       for (const p of data) {
         const key = `${p.title}|${p.price}|${p.city}|${p.district}`;
         if (existingKeys.has(key)) { skipped++; continue; }
-        propertyStore.add(p);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, created_at, ...rest } = p;
+        toAdd.push(rest);
         existingKeys.add(key);
-        added++;
       }
-      setProperties(propertyStore.getAll());
-      setImportMsg(skipped > 0 ? `${added} eklendi, ${skipped} tekrar atlandı.` : `${added} kayıt eklendi!`);
+      if (toAdd.length > 0) {
+        await propertyStore.addMany(toAdd);
+      }
+      const newAll = await propertyStore.getAll();
+      setProperties(newAll);
+      setImportMsg(skipped > 0 ? `${toAdd.length} eklendi, ${skipped} tekrar atlandı.` : `${toAdd.length} kayıt eklendi!`);
     } catch {
       setImportMsg("Yükleme hatası.");
     } finally {
@@ -315,9 +336,9 @@ export default function PortfolioPage() {
     }
   }
 
-  function deleteProperty(id: number) {
+  async function deleteProperty(id: number) {
     if (!confirm("Bu portföyü silmek istediğinizden emin misiniz?")) return;
-    propertyStore.delete(id);
+    await propertyStore.delete(id);
     setProperties(prev => prev.filter(p => p.id !== id));
   }
 
@@ -336,7 +357,7 @@ export default function PortfolioPage() {
             <Home size={24} className="text-amber-500" /> Portföy
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            {filtered.length} / {properties.length} gayrimenkul
+            {loading ? "Yükleniyor..." : `${filtered.length} / ${properties.length} gayrimenkul`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -354,10 +375,9 @@ export default function PortfolioPage() {
             <Upload size={14} /> {importing ? "..." : "Proje Deneme"}
           </button>
           {properties.length > 0 && (
-            <button onClick={() => {
+            <button onClick={async () => {
               if (!confirm(`Tüm ${properties.length} portföy silinecek. Emin misiniz?`)) return;
-              localStorage.removeItem("emlak_properties");
-              localStorage.removeItem("emlak_matches");
+              await propertyStore.deleteAll();
               setProperties([]);
               setImportMsg("Portföy temizlendi.");
             }}
@@ -453,7 +473,11 @@ export default function PortfolioPage() {
       )}
 
       {/* Liste */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 text-slate-400">
+          <p>Veriler yükleniyor...</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <Home size={48} className="mx-auto mb-3 opacity-30" />
           <p>{properties.length === 0 ? "Portföyde henüz gayrimenkul yok." : "Filtreye uyan kayıt bulunamadı."}</p>

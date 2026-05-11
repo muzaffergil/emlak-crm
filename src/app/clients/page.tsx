@@ -13,30 +13,6 @@ const INTENT_LABELS: Record<string, string> = {
 
 const ROOMS_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "5+2", "6+1"];
 const PROPERTY_TYPE_OPTIONS = ["Daire", "Villa", "Müstakil Ev", "Arsa", "Dükkan", "Ofis", "Bina", "Depo", "Tarla"];
-const CITY_OPTIONS = ["Gaziantep", "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Kocaeli", "Mersin", "Diyarbakır", "Eskişehir", "Samsun", "Denizli", "Trabzon", "Kayseri", "Malatya", "Balıkesir"];
-const DISTRICT_OPTIONS = ["Şahinbey", "Şehitkamil", "Araban", "İslahiye", "Karkamış", "Nizip", "Nurdağı", "Oğuzeli", "Yavuzeli"];
-
-const NEIGHBORHOODS_BY_DISTRICT: Record<string, string[]> = {
-  "Şahinbey": [
-    "Akkent", "Bağlarbaşı", "Bey", "Bostancık", "Büyük Kayalı", "Çukur", "Dülük",
-    "Ertuğrul Gazi", "Esentepe", "Gazikent", "Güvenevler", "Hoşgör", "İbrahimli",
-    "Karataş", "Karagöz", "Kozluca", "Küçük Kayalı", "Mücahitler", "Narlık",
-    "Suburcu", "Süslü", "Ünaldı", "Yavuzlar",
-  ],
-  "Şehitkamil": [
-    "75. Yıl", "Bahçelievler", "Batıkent", "Beylerbeyi", "Çamlıca", "Çıksorut",
-    "Düztepe", "Emek", "Güneykent", "Harapaşa", "Huzurevleri", "İncilipınar",
-    "Karşıyaka", "Mehmet Akif", "Mimar Sinan", "Seyrantepe", "Türktepe",
-    "Üniversite", "Yamaçtepe", "Yeşilvadi",
-  ],
-  "Nizip": ["Barak", "Nizip Merkez"],
-  "İslahiye": ["İslahiye Merkez"],
-  "Araban": ["Araban Merkez"],
-  "Karkamış": ["Karkamış Merkez"],
-  "Nurdağı": ["Nurdağı Merkez"],
-  "Oğuzeli": ["Oğuzeli Merkez"],
-  "Yavuzeli": ["Yavuzeli Merkez"],
-};
 const FEATURE_OPTIONS = ["Balkon", "Teras", "Bahçe", "Otopark", "Garaj", "Asansör", "Güvenlik", "Site içi", "Havuz", "Spor salonu", "Sauna", "Ebeveyn banyosu", "Amerikan mutfak", "Doğalgaz", "Kombi", "Klima", "Depolu", "Deniz manzarası", "Şehir manzarası", "Yeni bina", "Sıfır", "Krediye uygun"];
 
 function MultiCheckboxDropdown({
@@ -150,15 +126,22 @@ const emptyForm = {
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setClients(clientStore.getAll()); }, []);
+  useEffect(() => {
+    clientStore.getAll().then(data => {
+      setClients(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
-  function deleteClient(id: number) {
+  async function deleteClient(id: number) {
     if (!confirm("Bu müşteriyi silmek istiyor musunuz?")) return;
-    clientStore.delete(id);
+    await clientStore.delete(id);
     setClients((prev) => prev.filter((c) => c.id !== id));
   }
 
@@ -191,8 +174,9 @@ export default function ClientsPage() {
     setForm({ ...emptyForm });
   }
 
-  function saveClient(e: React.FormEvent) {
+  async function saveClient(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
     const data = {
       name: form.name,
       phone: form.phone || undefined,
@@ -211,14 +195,19 @@ export default function ClientsPage() {
       notes: form.notes || undefined,
     };
 
-    if (editingId != null) {
-      clientStore.update(editingId, data);
-      setClients(clientStore.getAll());
-    } else {
-      const newClient = clientStore.add(data);
-      setClients((prev) => [newClient, ...prev]);
+    try {
+      if (editingId != null) {
+        await clientStore.update(editingId, data);
+        const updated = await clientStore.getAll();
+        setClients(updated);
+      } else {
+        const newClient = await clientStore.add(data);
+        setClients((prev) => [newClient, ...prev]);
+      }
+      cancelForm();
+    } finally {
+      setSaving(false);
     }
-    cancelForm();
   }
 
   return (
@@ -228,7 +217,9 @@ export default function ClientsPage() {
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             <Users size={24} className="text-amber-500" /> Müşteriler
           </h1>
-          <p className="text-slate-500 text-sm mt-1">{clients.length} müşteri</p>
+          <p className="text-slate-500 text-sm mt-1">
+            {loading ? "Yükleniyor..." : `${clients.length} müşteri`}
+          </p>
         </div>
         <button onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(!showForm); }}
           className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
@@ -326,13 +317,19 @@ export default function ClientsPage() {
 
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={cancelForm} className="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50">İptal</button>
-              <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">{editingId != null ? "Güncelle" : "Kaydet"}</button>
+              <button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">
+                {saving ? "Kaydediliyor..." : editingId != null ? "Güncelle" : "Kaydet"}
+              </button>
             </div>
           </form>
         </div>
       )}
 
-      {clients.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12 text-slate-400">
+          <p>Müşteriler yükleniyor...</p>
+        </div>
+      ) : clients.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <Users size={48} className="mx-auto mb-3 opacity-30" />
           <p>Henüz müşteri eklenmemiş.</p>

@@ -170,10 +170,12 @@ export default function MatchesPage() {
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<RichMatch | null>(null);
 
-  function loadMatches() {
-    const rawMatches = matchStore.getAll();
-    const clients = clientStore.getAll();
-    const properties = propertyStore.getAll();
+  async function loadMatches() {
+    const [rawMatches, clients, properties] = await Promise.all([
+      matchStore.getAll(),
+      clientStore.getAll(),
+      propertyStore.getAll(),
+    ]);
     const rich: RichMatch[] = rawMatches.map((m) => {
       const c = clients.find((x) => x.id === m.client_id);
       const p = properties.find((x) => x.id === m.property_id);
@@ -196,25 +198,28 @@ export default function MatchesPage() {
 
   useEffect(() => { runMatch(); }, []);
 
-  function runMatch() {
+  async function runMatch() {
     setRunning(true);
     setError("");
     try {
-      const clients = clientStore.getAll();
-      const properties = propertyStore.getAll().filter((p) => p.status === "musait");
-      if (clients.length === 0 || properties.length === 0) {
+      const [clients, properties] = await Promise.all([
+        clientStore.getAll(),
+        propertyStore.getAll(),
+      ]);
+      const availableProps = properties.filter((p) => p.status === "musait");
+      if (clients.length === 0 || availableProps.length === 0) {
         setLastRun("Eşleştirilecek müşteri veya portföy yok");
         setRunning(false);
         return;
       }
       let total = 0;
       for (const c of clients) {
-        matchStore.deleteByClient(c.id);
-        // Sadece alıcı ve kiracıları eşleştir; satıcı/kiraya veren eşleştirilmez
+        await matchStore.deleteByClient(c.id);
+        // Sadece alıcı ve kiracıları eşleştir
         if (c.intent !== "aliyor" && c.intent !== "kiraciyor") continue;
         const clientNameNorm = c.name.trim().toLowerCase();
-        // Müşterinin kendi portföylerini çıkar (sahip adı veya başlık müşteri adıyla başlıyorsa)
-        const filteredProps = properties.filter((p) => {
+        // Müşterinin kendi portföylerini çıkar
+        const filteredProps = availableProps.filter((p) => {
           if (p.owner_name && p.owner_name.trim().toLowerCase() === clientNameNorm) return false;
           if (p.title.trim().toLowerCase().startsWith(clientNameNorm)) return false;
           return true;
@@ -248,13 +253,19 @@ export default function MatchesPage() {
             title: p.title,
           }))
         );
-        for (const r of results) {
-          matchStore.upsert({ client_id: c.id, property_id: r.property_id, score: r.score, reasons: r.reasons });
-          total++;
+        const matchesToInsert = results.map(r => ({
+          client_id: c.id,
+          property_id: r.property_id,
+          score: r.score,
+          reasons: r.reasons,
+        }));
+        if (matchesToInsert.length > 0) {
+          await matchStore.insertMany(matchesToInsert);
         }
+        total += results.length;
       }
       setLastRun(`${total} eşleşme bulundu`);
-      loadMatches();
+      await loadMatches();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Hata oluştu");
     } finally {

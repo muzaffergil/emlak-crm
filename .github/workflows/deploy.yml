@@ -31,6 +31,8 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SUPABASE_URL: https://lyefygzutvqawspiutgn.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_lEi7bLKUzAwLfy9q05i2AA_LUnaeYzH
 
       - uses: actions/upload-pages-artifact@v3
         with:
