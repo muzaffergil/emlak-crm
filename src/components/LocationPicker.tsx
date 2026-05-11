@@ -170,6 +170,10 @@ export const GAZ_NEIGHBORHOODS: Record<string, string[]> = {
   ],
 };
 
+function norm(s: string) {
+  return s.toLocaleLowerCase("tr-TR");
+}
+
 // ── Ortak: dikey liste dropdown ──────────────────────────────────────────────
 
 function ListDropdown({
@@ -193,7 +197,7 @@ function ListDropdown({
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  const filtered = options.filter(o => norm(o).includes(norm(search)));
 
   function toggle(o: string) {
     if (multi) {
