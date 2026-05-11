@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, Upload, X, SlidersHorizontal, Pencil } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 
@@ -249,8 +249,6 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importMsg, setImportMsg] = useState("");
   const [editing, setEditing] = useState<Property | null>(null);
 
   useEffect(() => {
@@ -300,42 +298,6 @@ export default function PortfolioPage() {
     return true;
   }), [properties, filters]);
 
-  async function importJson(file: string, label: string) {
-    if (!confirm(`${label} portföye eklenecek. Devam edilsin mi?`)) return;
-    setImporting(true);
-    setImportMsg("");
-    try {
-      const base = window.location.pathname.includes("/emlak-crm") ? "/emlak-crm" : "";
-      const res = await fetch(`${base}/${file}`);
-      const data = await res.json();
-      const existing = await propertyStore.getAll();
-      const existingKeys = new Set(
-        existing.map(p => `${p.title}|${p.price}|${p.city}|${p.district}`)
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const toAdd: Omit<Property, "id" | "created_at">[] = [];
-      let skipped = 0;
-      for (const p of data) {
-        const key = `${p.title}|${p.price}|${p.city}|${p.district}`;
-        if (existingKeys.has(key)) { skipped++; continue; }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, created_at, ...rest } = p;
-        toAdd.push(rest);
-        existingKeys.add(key);
-      }
-      if (toAdd.length > 0) {
-        await propertyStore.addMany(toAdd);
-      }
-      const newAll = await propertyStore.getAll();
-      setProperties(newAll);
-      setImportMsg(skipped > 0 ? `${toAdd.length} eklendi, ${skipped} tekrar atlandı.` : `${toAdd.length} kayıt eklendi!`);
-    } catch {
-      setImportMsg("Yükleme hatası.");
-    } finally {
-      setImporting(false);
-    }
-  }
-
   async function deleteProperty(id: number) {
     if (!confirm("Bu portföyü silmek istediğinizden emin misiniz?")) return;
     await propertyStore.delete(id);
@@ -361,30 +323,6 @@ export default function PortfolioPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {importMsg && <span className="text-sm text-green-600 font-medium">{importMsg}</span>}
-          <button onClick={() => importJson("portfolio-data.json", "Yücesoy Güncel (77 gayrimenkul)")} disabled={importing}
-            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-            <Upload size={14} /> {importing ? "..." : "Yücesoy Güncel"}
-          </button>
-          <button onClick={() => importJson("portfolio2-data.json", "Portföy Takip (95 kayıt)")} disabled={importing}
-            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-            <Upload size={14} /> {importing ? "..." : "Portföy Takip"}
-          </button>
-          <button onClick={() => importJson("portfolio3-data.json", "Proje Deneme (43 kayıt)")} disabled={importing}
-            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-            <Upload size={14} /> {importing ? "..." : "Proje Deneme"}
-          </button>
-          {properties.length > 0 && (
-            <button onClick={async () => {
-              if (!confirm(`Tüm ${properties.length} portföy silinecek. Emin misiniz?`)) return;
-              await propertyStore.deleteAll();
-              setProperties([]);
-              setImportMsg("Portföy temizlendi.");
-            }}
-              className="flex items-center gap-1.5 px-3 py-2 border border-red-200 rounded-lg text-sm text-red-500 hover:bg-red-50">
-              <Trash2 size={14} /> Temizle
-            </button>
-          )}
           <a href="add-property" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
             + Portföy Ekle
           </a>
