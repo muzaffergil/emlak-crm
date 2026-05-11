@@ -171,7 +171,12 @@ export const GAZ_NEIGHBORHOODS: Record<string, string[]> = {
 };
 
 function norm(s: string) {
-  return s.toLocaleLowerCase("tr-TR");
+  return s
+    .replace(/İ/g, "i").replace(/I/g, "i")
+    .replace(/Ğ/g, "ğ").replace(/Ü/g, "ü")
+    .replace(/Ş/g, "ş").replace(/Ö/g, "ö")
+    .replace(/Ç/g, "ç")
+    .toLowerCase();
 }
 
 // ── Ortak: dikey liste dropdown ──────────────────────────────────────────────
