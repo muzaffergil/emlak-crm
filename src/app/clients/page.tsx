@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil } from "lucide-react";
 import { clientStore, type Client } from "@/lib/storage";
+import { MultiLocationPicker } from "@/components/LocationPicker";
 
 const INTENT_LABELS: Record<string, string> = {
   aliyor: "Alıcı",
@@ -289,40 +290,12 @@ export default function ClientsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Şehirler</label>
-                <MultiCheckboxDropdown
-                  placeholder="İstanbul, Gaziantep..."
-                  options={CITY_OPTIONS}
-                  selected={form.cities}
-                  onChange={(v) => setForm((p) => ({ ...p, cities: v }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">İlçeler</label>
-                <MultiCheckboxDropdown
-                  placeholder="Şahinbey, Şehitkamil..."
-                  options={DISTRICT_OPTIONS}
-                  selected={form.districts}
-                  onChange={(v) => setForm((p) => ({ ...p, districts: v, neighborhoods: p.neighborhoods.filter(n => Object.entries(NEIGHBORHOODS_BY_DISTRICT).filter(([d]) => v.includes(d)).flatMap(([,ns]) => ns).includes(n)) }))}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Mahalleler</label>
-              <MultiCheckboxDropdown
-                placeholder="Mahalle seçin..."
-                options={
-                  form.districts.length > 0
-                    ? form.districts.flatMap(d => (NEIGHBORHOODS_BY_DISTRICT[d] || []).map(n => `${d} - ${n}`))
-                    : Object.entries(NEIGHBORHOODS_BY_DISTRICT).flatMap(([d, ns]) => ns.map(n => `${d} - ${n}`))
-                }
-                selected={form.neighborhoods}
-                onChange={(v) => setForm((p) => ({ ...p, neighborhoods: v }))}
-              />
-            </div>
+            <MultiLocationPicker
+              districts={form.districts}
+              neighborhoods={form.neighborhoods}
+              onDistrictsChange={(v) => setForm((p) => ({ ...p, districts: v }))}
+              onNeighborhoodsChange={(v) => setForm((p) => ({ ...p, neighborhoods: v }))}
+            />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[["budget_min","Min Bütçe (₺)"],["budget_max","Max Bütçe (₺)"],["size_min","Min m²"],["size_max","Max m²"]].map(([key, label]) => (

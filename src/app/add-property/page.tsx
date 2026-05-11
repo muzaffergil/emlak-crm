@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { MessageSquare, ClipboardList, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 import { parsePropertyFromText } from "@/lib/claude";
 import { propertyStore, type Property } from "@/lib/storage";
+import { SingleLocationPicker } from "@/components/LocationPicker";
 
 const EXAMPLES = [
   "Kadıköy Moda'da 3+1 satılık daire, 120m², 5. kat, asansörlü, balkonlu, otoparklı, 8.500.000 TL",
@@ -118,13 +119,6 @@ export default function AddPropertyPage() {
   const [customRooms, setCustomRooms] = useState("");
   const [formError, setFormError] = useState("");
   const [added, setAdded] = useState<Property[]>([]);
-  const [existingDistricts, setExistingDistricts] = useState<string[]>([]);
-
-  useEffect(() => {
-    const all = propertyStore.getAll();
-    const districts = [...new Set(all.map(p => p.district).filter(Boolean) as string[])].sort();
-    setExistingDistricts(districts);
-  }, []);
 
   function f(key: keyof typeof EMPTY_FORM, val: string) {
     setForm(prev => ({ ...prev, [key]: val }));
@@ -179,10 +173,6 @@ export default function AddPropertyPage() {
       setForm({ ...EMPTY_FORM });
       setFormRooms([]);
       setCustomRooms("");
-      // Yeni eklenen ilçeyi listeye ekle
-      if (form.district.trim()) {
-        setExistingDistricts(prev => [...new Set([...prev, form.district.trim()])].sort());
-      }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Bir hata oluştu");
     }
@@ -258,24 +248,14 @@ export default function AddPropertyPage() {
           </div>
 
           {/* Konum */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>Şehir</label>
-              <input className={inputCls} value={form.city} onChange={e => f("city", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelCls}>İlçe</label>
-              <input className={inputCls} value={form.district} onChange={e => f("district", e.target.value)}
-                placeholder="ör. Şehitkamil" list="district-list" />
-              <datalist id="district-list">
-                {existingDistricts.map(d => <option key={d} value={d} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className={labelCls}>Mahalle</label>
-              <input className={inputCls} value={form.neighborhood} onChange={e => f("neighborhood", e.target.value)}
-                placeholder="ör. Bağlarbaşı" />
-            </div>
+          <div>
+            <p className={labelCls}>Konum (İlçe / Mahalle)</p>
+            <SingleLocationPicker
+              district={form.district}
+              neighborhood={form.neighborhood}
+              onDistrictChange={d => f("district", d)}
+              onNeighborhoodChange={n => f("neighborhood", n)}
+            />
           </div>
 
           {/* Fiyat + m² */}

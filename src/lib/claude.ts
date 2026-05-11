@@ -149,6 +149,7 @@ export function computeMatches(
     type: string;
     city: string;
     district?: string;
+    neighborhood?: string;
     price?: number;
     price_type?: string;
     size?: number;

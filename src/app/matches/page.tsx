@@ -239,6 +239,7 @@ export default function MatchesPage() {
             type: p.type,
             city: p.city,
             district: p.district,
+            neighborhood: p.neighborhood,
             price: p.price,
             price_type: p.price_type,
             size: p.size,

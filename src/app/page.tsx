@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, Upload, X, SlidersHorizontal, Pencil } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
+import { SingleLocationPicker } from "@/components/LocationPicker";
 
 // ── Düzenleme Modalı ────────────────────────────────────────────────────────
 function EditModal({ property, onClose, onSave }: {
@@ -91,17 +92,14 @@ function EditModal({ property, onClose, onSave }: {
               </select>
             </div>
 
-            <div>
-              <label className={labelCls}>Şehir</label>
-              <input className={inputCls} value={form.city} onChange={e => f("city", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelCls}>İlçe</label>
-              <input className={inputCls} value={form.district} onChange={e => f("district", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelCls}>Mahalle</label>
-              <input className={inputCls} value={form.neighborhood} onChange={e => f("neighborhood", e.target.value)} />
+            <div className="md:col-span-2">
+              <label className={labelCls}>Konum (İlçe / Mahalle)</label>
+              <SingleLocationPicker
+                district={form.district}
+                neighborhood={form.neighborhood}
+                onDistrictChange={d => f("district", d)}
+                onNeighborhoodChange={n => f("neighborhood", n)}
+              />
             </div>
 
             <div>
