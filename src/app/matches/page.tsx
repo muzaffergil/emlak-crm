@@ -210,6 +210,15 @@ export default function MatchesPage() {
       let total = 0;
       for (const c of clients) {
         matchStore.deleteByClient(c.id);
+        // Sadece alıcı ve kiracıları eşleştir; satıcı/kiraya veren eşleştirilmez
+        if (c.intent !== "aliyor" && c.intent !== "kiraciyor") continue;
+        const clientNameNorm = c.name.trim().toLowerCase();
+        // Müşterinin kendi portföylerini çıkar (sahip adı veya başlık müşteri adıyla başlıyorsa)
+        const filteredProps = properties.filter((p) => {
+          if (p.owner_name && p.owner_name.trim().toLowerCase() === clientNameNorm) return false;
+          if (p.title.trim().toLowerCase().startsWith(clientNameNorm)) return false;
+          return true;
+        });
         const results = computeMatches(
           {
             id: c.id,
@@ -224,7 +233,7 @@ export default function MatchesPage() {
             rooms: c.rooms,
             features_wanted: c.features_wanted,
           },
-          properties.map((p) => ({
+          filteredProps.map((p) => ({
             id: p.id,
             type: p.type,
             city: p.city,

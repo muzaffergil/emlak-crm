@@ -158,8 +158,7 @@ export function computeMatches(
 ): { property_id: number; score: number; reasons: string[] }[] {
   const results: { property_id: number; score: number; reasons: string[] }[] = [];
 
-  const wantsBuy = ["aliyor", "satiyor"].includes(clientData.intent);
-  const expectedPriceType = wantsBuy ? "satis" : "kira";
+  const expectedPriceType = clientData.intent === "kiraciyor" ? "kira" : "satis";
   const roomsArr = clientData.rooms
     ? (Array.isArray(clientData.rooms) ? clientData.rooms : [clientData.rooms as string]).filter(Boolean)
     : [];
@@ -171,7 +170,7 @@ export function computeMatches(
 
     // Satılık / Kiralık
     if (p.price_type !== expectedPriceType) continue;
-    reasons.push(wantsBuy ? "Satılık" : "Kiralık");
+    reasons.push(expectedPriceType === "satis" ? "Satılık" : "Kiralık");
 
     // Gayrimenkul tipi
     if (clientData.property_types.length > 0) {
