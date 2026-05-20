@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2 } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { downloadPropertyTemplate, parsePropertyExcel, filterDuplicates } from "@/lib/excelImport";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
   ssr: false,
@@ -593,6 +594,9 @@ export default function PortfolioPage() {
   const [viewing, setViewing] = useState<Property | null>(null);
   const [selling, setSelling] = useState<Property | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
+  const [importResult, setImportResult] = useState<{ added: number; dup: number; skipped: number } | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const excelFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     propertyStore.getAll().then(data => {
@@ -653,6 +657,24 @@ export default function PortfolioPage() {
     setEditing(null);
   }
 
+  async function handleExcelImport(file: File) {
+    setImportLoading(true);
+    try {
+      const { rows, skippedCount } = await parsePropertyExcel(file);
+      const { toAdd, dupCount } = filterDuplicates(rows, properties);
+      if (toAdd.length > 0) {
+        const added = await propertyStore.addMany(toAdd);
+        setProperties(prev => [...added, ...prev]);
+      }
+      setImportResult({ added: toAdd.length, dup: dupCount, skipped: skippedCount });
+    } catch {
+      alert("Excel dosyası okunamadı. Lütfen şablonu kullanın.");
+    } finally {
+      setImportLoading(false);
+      if (excelFileRef.current) excelFileRef.current.value = "";
+    }
+  }
+
   return (
     <div>
       {editing && <EditModal property={editing} onClose={() => setEditing(null)} onSave={handleSaveEdit} />}
@@ -689,11 +711,46 @@ export default function PortfolioPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button
+            onClick={() => downloadPropertyTemplate()}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <FileSpreadsheet size={15} /> Excel Şablonu
+          </button>
+          <button
+            onClick={() => excelFileRef.current?.click()}
+            disabled={importLoading}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
+            {importLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            Excel'den Aktar
+          </button>
           <a href="add-property" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
             + Portföy Ekle
           </a>
         </div>
       </div>
+
+      <input
+        ref={excelFileRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={e => { if (e.target.files?.[0]) handleExcelImport(e.target.files[0]); }}
+      />
+
+      {importResult && (
+        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-start justify-between gap-3">
+          <div className="text-sm text-green-800">
+            <span className="font-semibold">{importResult.added} portföy eklendi.</span>
+            {importResult.dup > 0 && <span className="ml-2 text-slate-500">{importResult.dup} mükerrer atlandı.</span>}
+            {importResult.skipped > 0 && <span className="ml-2 text-slate-500">{importResult.skipped} eksik satır atlandı.</span>}
+          </div>
+          <button onClick={() => setImportResult(null)} className="text-green-600 hover:text-green-800 flex-shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Arama + Filtre Aç */}
       <div className="flex gap-2 mb-3">
