@@ -187,7 +187,7 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-slate-800 text-base leading-tight">{property.title}</h2>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">{property.type}</span>
+              <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full capitalize">{property.type}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
                 {property.price_type === "kira" ? "Kiralık" : "Satılık"}
@@ -587,7 +587,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                  <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">{p.type}</span>
+                  <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full capitalize">{p.type}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
                     {p.price_type === "kira" ? "Kiralık" : "Satılık"}
