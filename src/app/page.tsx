@@ -260,7 +260,7 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
                       <Phone size={13} className="text-slate-400" /> {property.owner_phone}
                     </a>
                     <a
-                      href={`https://wa.me/${property.owner_phone.replace(/\D/g, "").replace(/^0/, "90")}`}
+                      href={`https://web.whatsapp.com/send?phone=${property.owner_phone.replace(/\D/g, "").replace(/^0/, "90")}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
