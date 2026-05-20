@@ -84,7 +84,7 @@ function EditModal({ property, onClose, onSave }: {
             <div>
               <label className={labelCls}>Tip</label>
               <select className={inputCls} value={form.type} onChange={e => f("type", e.target.value)}>
-                {["daire","villa","arsa","dükkan","ofis"].map(t => <option key={t} value={t}>{t}</option>)}
+                {[["daire","Daire"],["villa","Villa"],["arsa","Arsa"],["dükkan","Dükkan"],["ofis","Ofis"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
 
