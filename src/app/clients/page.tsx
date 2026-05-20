@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { clientStore, propertyStore, type Client, type Property } from "@/lib/storage";
 import { MultiLocationPicker } from "@/components/LocationPicker";
 
@@ -309,6 +310,7 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [viewingSeller, setViewingSeller] = useState<{ name: string; phone?: string; count: number; types: Set<string> } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<Client | null>(null);
 
   useEffect(() => {
     Promise.all([clientStore.getAll(), propertyStore.getAll()])
@@ -331,9 +333,10 @@ export default function ClientsPage() {
   }, [properties]);
 
   async function deleteClient(id: number) {
-    if (!confirm("Bu müşteriyi silmek istiyor musunuz?")) return;
     await clientStore.delete(id);
     setClients((prev) => prev.filter((c) => c.id !== id));
+    setViewingClient(null);
+    setConfirmDeleteId(null);
   }
 
   function startEdit(c: Client) {
@@ -408,11 +411,19 @@ export default function ClientsPage() {
           client={viewingClient}
           onClose={() => setViewingClient(null)}
           onEdit={() => { startEdit(viewingClient); setViewingClient(null); }}
-          onDelete={async () => { await deleteClient(viewingClient.id); setViewingClient(null); }}
+          onDelete={() => { setViewingClient(null); setConfirmDeleteId(viewingClient); }}
         />
       )}
       {viewingSeller && (
         <DerivedSellerModal seller={viewingSeller} onClose={() => setViewingSeller(null)} />
+      )}
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message={`"${confirmDeleteId.name}" adlı müşteriyi silmek istediğinizden emin misiniz?`}
+          confirmLabel="Evet, Sil"
+          onConfirm={() => deleteClient(confirmDeleteId.id)}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -577,7 +588,7 @@ export default function ClientsPage() {
                             </div>
                             <div className="flex items-center gap-1 ml-3">
                               <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
-                              <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                              <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                             </div>
                           </div>
                         </div>

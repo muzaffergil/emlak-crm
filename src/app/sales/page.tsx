@@ -5,6 +5,7 @@ import {
   X, Ruler, DoorOpen, MessageCircle, Building2, Pencil, RotateCcw, Save,
 } from "lucide-react";
 import { saleStore, propertyStore, type Sale } from "@/lib/storage";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ── Düzenleme Modalı ──────────────────────────────────────────────────────────
 function EditSaleModal({ sale, onClose, onSaved }: {
@@ -204,6 +205,8 @@ export default function SalesPage() {
   const [selected, setSelected] = useState<Sale | null>(null);
   const [editing, setEditing] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Sale | null>(null);
+  const [confirmReturn, setConfirmReturn] = useState<Sale | null>(null);
 
   useEffect(() => {
     saleStore.getAll()
@@ -212,14 +215,13 @@ export default function SalesPage() {
   }, []);
 
   async function handleDelete(id: number) {
-    if (!confirm("Bu satış kaydını silmek istediğinizden emin misiniz?")) return;
     await saleStore.delete(id);
     setSales(prev => prev.filter(s => s.id !== id));
     setSelected(null);
+    setConfirmDelete(null);
   }
 
   async function handleReturn(sale: Sale) {
-    if (!confirm("Satış iptal edilecek ve gayrimenkul portföye 'Müsait' statüsüyle geri eklenecek. Devam edilsin mi?")) return;
     setReturning(true);
     try {
       const { id: _id, created_at: _ca, ...rest } = sale.property_data as Sale["property_data"] & { created_at: string };
@@ -227,6 +229,7 @@ export default function SalesPage() {
       await saleStore.delete(sale.id);
       setSales(prev => prev.filter(s => s.id !== sale.id));
       setSelected(null);
+      setConfirmReturn(null);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "İşlem başarısız.");
     } finally {
@@ -281,7 +284,7 @@ export default function SalesPage() {
                     <BadgeCheck size={11} /> {date}
                   </span>
                   <button
-                    onClick={e => { e.stopPropagation(); handleDelete(sale.id); }}
+                    onClick={e => { e.stopPropagation(); setConfirmDelete(sale); }}
                     className="text-slate-300 hover:text-red-500 transition-colors"
                     title="Kaydı sil"
                   >
@@ -328,9 +331,9 @@ export default function SalesPage() {
         <SaleModal
           sale={selected}
           onClose={() => setSelected(null)}
-          onDelete={() => handleDelete(selected.id)}
+          onDelete={() => { setSelected(null); setConfirmDelete(selected); }}
           onEdit={() => setEditing(true)}
-          onReturn={() => !returning && handleReturn(selected)}
+          onReturn={() => { setSelected(null); setConfirmReturn(selected); }}
         />
       )}
 
@@ -339,6 +342,26 @@ export default function SalesPage() {
           sale={selected}
           onClose={() => setEditing(false)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`"${confirmDelete.property_data.title}" satış kaydını silmek istediğinizden emin misiniz?`}
+          confirmLabel="Evet, Sil"
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+
+      {confirmReturn && (
+        <ConfirmDialog
+          message={`Satış iptal edilecek ve "${confirmReturn.property_data.title}" portföye "Müsait" statüsüyle geri eklenecek. Emin misiniz?`}
+          confirmLabel="Evet, Geri Al"
+          cancelLabel="Hayır, İptal"
+          danger={false}
+          onConfirm={() => !returning && handleReturn(confirmReturn)}
+          onCancel={() => setConfirmReturn(null)}
         />
       )}
     </div>

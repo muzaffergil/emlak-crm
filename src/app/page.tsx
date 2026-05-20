@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
   ssr: false,
@@ -591,6 +592,7 @@ export default function PortfolioPage() {
   const [editing, setEditing] = useState<Property | null>(null);
   const [viewing, setViewing] = useState<Property | null>(null);
   const [selling, setSelling] = useState<Property | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
 
   useEffect(() => {
     propertyStore.getAll().then(data => {
@@ -640,9 +642,10 @@ export default function PortfolioPage() {
   }), [properties, filters]);
 
   async function deleteProperty(id: number) {
-    if (!confirm("Bu portföyü silmek istediğinizden emin misiniz?")) return;
     await propertyStore.delete(id);
     setProperties(prev => prev.filter(p => p.id !== id));
+    setViewing(null);
+    setConfirmDelete(null);
   }
 
   function handleSaveEdit(updated: Property) {
@@ -660,12 +663,19 @@ export default function PortfolioPage() {
           onConfirm={(id) => { setProperties(prev => prev.filter(p => p.id !== id)); setSelling(null); }}
         />
       )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`"${confirmDelete.title}" portföyünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+          onConfirm={() => deleteProperty(confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
       {viewing && (
         <DetailModal
           property={viewing}
           onClose={() => setViewing(null)}
           onEdit={() => { setEditing(viewing); setViewing(null); }}
-          onDelete={async () => { await deleteProperty(viewing.id); setViewing(null); }}
+          onDelete={() => { setViewing(null); setConfirmDelete(viewing); }}
         />
       )}
       {/* Başlık */}
@@ -794,7 +804,7 @@ export default function PortfolioPage() {
                     <button onClick={e => { e.stopPropagation(); setEditing(p); }} className="text-slate-300 hover:text-amber-500 transition-colors">
                       <Pencil size={14} />
                     </button>
-                    <button onClick={e => { e.stopPropagation(); deleteProperty(p.id); }} className="text-slate-300 hover:text-red-500 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }} className="text-slate-300 hover:text-red-500 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>

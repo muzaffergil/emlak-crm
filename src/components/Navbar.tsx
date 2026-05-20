@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { Building2, Users, Zap, PlusCircle, Download, Upload, Loader2, Menu, X, BadgeCheck, Map } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const links = [
   { href: "/", label: "Portföy", icon: Building2 },
@@ -59,6 +60,7 @@ export default function Navbar() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   async function handleExport() {
     setExporting(true);
@@ -67,13 +69,29 @@ export default function Navbar() {
   }
 
   async function handleImport(file: File) {
-    if (!confirm("Mevcut tüm veriler silinip yeni dosya yüklenecek. Devam edilsin mi?")) return;
-    setImporting(true);
     setMenuOpen(false);
-    try { await importData(file); } catch { alert("Dosya okunamadı."); setImporting(false); }
+    setPendingFile(file);
+  }
+
+  async function confirmImport() {
+    if (!pendingFile) return;
+    setImporting(true);
+    setPendingFile(null);
+    try { await importData(pendingFile); } catch { alert("Dosya okunamadı."); setImporting(false); }
   }
 
   return (
+    <>
+    {pendingFile && (
+      <ConfirmDialog
+        message="Mevcut tüm veriler silinip yeni dosya yüklenecek. Devam edilsin mi?"
+        confirmLabel="Evet, İçe Aktar"
+        cancelLabel="Hayır, İptal"
+        danger={true}
+        onConfirm={confirmImport}
+        onCancel={() => setPendingFile(null)}
+      />
+    )}
     <nav className="bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4">
         {/* Ana satır */}
@@ -178,5 +196,6 @@ export default function Navbar() {
         onChange={(e) => { if (e.target.files?.[0]) handleImport(e.target.files[0]); }}
       />
     </nav>
+    </>
   );
 }
