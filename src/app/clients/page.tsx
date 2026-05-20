@@ -1,9 +1,15 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle, MapPin, TrendingUp, Ruler, DoorOpen, ArrowLeft } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { clientStore, propertyStore, type Client, type Property } from "@/lib/storage";
 import { MultiLocationPicker } from "@/components/LocationPicker";
+
+const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
+  ssr: false,
+  loading: () => <div className="h-36 bg-slate-100 rounded-lg animate-pulse" />,
+});
 
 const INTENT_LABELS: Record<string, string> = {
   aliyor: "Alıcı",
@@ -239,13 +245,112 @@ function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
   );
 }
 
-function DerivedSellerModal({ seller, onClose }: {
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  musait:  { label: "Müsait",  color: "bg-green-100 text-green-800" },
+  satildi: { label: "Satıldı", color: "bg-red-100 text-red-800" },
+  kiralik: { label: "Kiralık", color: "bg-blue-100 text-blue-800" },
+  rezerve: { label: "Rezerve", color: "bg-yellow-100 text-yellow-800" },
+};
+
+function PropertyDetailView({ property, onBack }: { property: Property; onBack: () => void }) {
+  const st = STATUS_LABELS[property.status] || { label: property.status, color: "bg-slate-100 text-slate-700" };
+  const hasDetails = property.size || property.rooms || property.floor != null;
+  return (
+    <>
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100">
+        <button onClick={onBack} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm">
+          <ArrowLeft size={15} /> Geri
+        </button>
+      </div>
+
+      <div className="overflow-y-auto px-5 py-4 space-y-4 flex-1">
+        <div>
+          <h3 className="font-semibold text-slate-800 text-base leading-tight">{property.title}</h3>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full capitalize">{property.type}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+              {property.price_type === "kira" ? "Kiralık" : "Satılık"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-sm text-slate-600">
+          <MapPin size={14} className="text-slate-400 flex-shrink-0" />
+          {[property.neighborhood, property.district, property.city].filter(Boolean).join(", ")}
+        </div>
+
+        {property.price && (
+          <p className="text-2xl font-bold text-slate-800">{property.price.toLocaleString("tr-TR")} ₺</p>
+        )}
+
+        {hasDetails && (
+          <div className="grid grid-cols-3 gap-2">
+            {property.size && (
+              <div className="bg-slate-50 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-400 mb-0.5"><Ruler size={10} className="inline" /> Alan</p>
+                <p className="text-sm font-semibold text-slate-700">{property.size} m²</p>
+              </div>
+            )}
+            {property.rooms && (
+              <div className="bg-slate-50 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-400 mb-0.5"><DoorOpen size={10} className="inline" /> Oda</p>
+                <p className="text-sm font-semibold text-slate-700">{property.rooms}</p>
+              </div>
+            )}
+            {property.floor != null && (
+              <div className="bg-slate-50 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-400 mb-0.5">Kat</p>
+                <p className="text-sm font-semibold text-slate-700">{property.floor}{property.total_floors ? `/${property.total_floors}` : ""}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {property.features.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {property.features.map(f => (
+              <span key={f} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{f}</span>
+            ))}
+          </div>
+        )}
+
+        {property.photos && property.photos.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {property.photos.map((url, i) => (
+              <img key={i} src={url} alt="" className="w-24 h-24 flex-shrink-0 rounded-lg object-cover border border-slate-200" />
+            ))}
+          </div>
+        )}
+
+        <div>
+          <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Konum</p>
+          <PropertyLocationMap property={property} />
+        </div>
+
+        {property.description && (
+          <p className="text-sm text-slate-600 leading-relaxed">{property.description}</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function DerivedSellerModal({ seller, allProperties, onClose }: {
   seller: { name: string; phone?: string; count: number; types: Set<string> };
+  allProperties: Property[];
   onClose: () => void;
 }) {
+  const [selected, setSelected] = useState<Property | null>(null);
+
+  const sellerProps = allProperties.filter(
+    p => p.owner_name?.trim().toLowerCase() === seller.name.trim().toLowerCase()
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Başlık — her zaman görünür */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
           <div>
             <h2 className="font-semibold text-slate-800">{seller.name}</h2>
@@ -255,26 +360,68 @@ function DerivedSellerModal({ seller, onClose }: {
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-3"><X size={18} /></button>
         </div>
-        <div className="px-5 py-4 space-y-3">
-          {seller.phone && (
-            <div className="flex items-center gap-2">
-              <a href={`tel:${seller.phone}`} className="text-sm text-slate-600 flex items-center gap-1.5 hover:underline">
-                <Phone size={13} className="text-slate-400" /> {seller.phone}
-              </a>
-              <a href={waLink(seller.phone)} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors">
-                <MessageCircle size={12} /> WhatsApp
-              </a>
+
+        {selected ? (
+          <PropertyDetailView property={selected} onBack={() => setSelected(null)} />
+        ) : (
+          <div className="overflow-y-auto px-5 py-4 space-y-4 flex-1">
+            {/* İletişim */}
+            {seller.phone && (
+              <div className="flex items-center gap-2">
+                <a href={`tel:${seller.phone}`} className="text-sm text-slate-600 flex items-center gap-1.5 hover:underline">
+                  <Phone size={13} className="text-slate-400" /> {seller.phone}
+                </a>
+                <a href={waLink(seller.phone)} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors">
+                  <MessageCircle size={12} /> WhatsApp
+                </a>
+              </div>
+            )}
+
+            {/* Portföy listesi */}
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Portföyler ({sellerProps.length})</p>
+              <div className="space-y-2">
+                {sellerProps.map(p => {
+                  const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelected(p)}
+                      className="border border-slate-200 rounded-xl p-3 cursor-pointer hover:shadow-md hover:border-amber-200 transition-all"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-medium text-slate-800 text-sm leading-tight">{p.title}</p>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5 text-xs text-slate-500">
+                        {[p.neighborhood, p.district].filter(Boolean).length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} /> {[p.neighborhood, p.district].filter(Boolean).join(", ")}
+                          </span>
+                        )}
+                        {p.price && (
+                          <span className="flex items-center gap-1 font-semibold text-slate-700">
+                            <TrendingUp size={10} /> {p.price.toLocaleString("tr-TR")} ₺
+                          </span>
+                        )}
+                        {p.size && <span>{p.size} m²</span>}
+                        {p.rooms && <span>{p.rooms}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+                {sellerProps.length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-3">Portföy bulunamadı.</p>
+                )}
+              </div>
             </div>
-          )}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full">{seller.count} portföy</span>
-            {Array.from(seller.types).map(t => (
-              <span key={t} className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full">{t}</span>
-            ))}
           </div>
-        </div>
-        <div className="px-5 py-4 border-t border-slate-100">
+        )}
+
+        <div className="px-5 py-3 border-t border-slate-100">
           <button onClick={onClose} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Kapat</button>
         </div>
       </div>
@@ -415,7 +562,7 @@ export default function ClientsPage() {
         />
       )}
       {viewingSeller && (
-        <DerivedSellerModal seller={viewingSeller} onClose={() => setViewingSeller(null)} />
+        <DerivedSellerModal seller={viewingSeller} allProperties={properties} onClose={() => setViewingSeller(null)} />
       )}
       {confirmDeleteId && (
         <ConfirmDialog
