@@ -107,7 +107,7 @@ function MultiCheckboxDropdown({
 }
 
 function waLink(phone: string) {
-  return `https://web.whatsapp.com/send?phone=${phone.replace(/\D/g, "").replace(/^0/, "90")}`;
+  return `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "90")}`;
 }
 
 function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
