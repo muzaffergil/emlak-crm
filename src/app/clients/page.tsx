@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home } from "lucide-react";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle } from "lucide-react";
 import { clientStore, propertyStore, type Client, type Property } from "@/lib/storage";
 import { MultiLocationPicker } from "@/components/LocationPicker";
 
@@ -106,6 +106,175 @@ function MultiCheckboxDropdown({
   );
 }
 
+function waLink(phone: string) {
+  return `https://web.whatsapp.com/send?phone=${phone.replace(/\D/g, "").replace(/^0/, "90")}`;
+}
+
+function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
+  client: Client;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+          <div>
+            <h2 className="font-semibold text-slate-800 text-base">{client.name}</h2>
+            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full mt-1.5 inline-block">
+              {INTENT_LABELS[client.intent] || client.intent}
+            </span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-3"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 space-y-4">
+          {(client.phone || client.email) && (
+            <div className="space-y-2">
+              {client.phone && (
+                <div className="flex items-center gap-2">
+                  <a href={`tel:${client.phone}`} className="text-sm text-slate-600 flex items-center gap-1.5 hover:underline">
+                    <Phone size={13} className="text-slate-400" /> {client.phone}
+                  </a>
+                  <a href={waLink(client.phone)} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors">
+                    <MessageCircle size={12} /> WhatsApp
+                  </a>
+                </div>
+              )}
+              {client.email && (
+                <a href={`mailto:${client.email}`} className="text-sm text-slate-600 flex items-center gap-1.5 hover:underline">
+                  <Mail size={13} className="text-slate-400" /> {client.email}
+                </a>
+              )}
+            </div>
+          )}
+
+          {client.property_types.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1.5">Gayrimenkul Tipi</p>
+              <div className="flex flex-wrap gap-1.5">
+                {client.property_types.map(t => <span key={t} className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full">{t}</span>)}
+              </div>
+            </div>
+          )}
+
+          {(client.districts.length > 0 || (client.neighborhoods ?? []).length > 0) && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1.5">Konum Tercihi</p>
+              <div className="flex flex-wrap gap-1.5">
+                {client.districts.map(d => <span key={d} className="bg-blue-50 text-blue-600 text-xs px-2.5 py-1 rounded-full">{d}</span>)}
+                {(client.neighborhoods ?? []).map(n => <span key={n} className="bg-indigo-50 text-indigo-600 text-xs px-2.5 py-1 rounded-full">{n}</span>)}
+              </div>
+            </div>
+          )}
+
+          {(client.budget_min || client.budget_max || client.size_min || client.size_max) && (
+            <div className="grid grid-cols-2 gap-2">
+              {(client.budget_min || client.budget_max) && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Bütçe</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {client.budget_min ? `${client.budget_min.toLocaleString("tr-TR")} ₺` : "—"}{" – "}{client.budget_max ? `${client.budget_max.toLocaleString("tr-TR")} ₺` : "—"}
+                  </p>
+                </div>
+              )}
+              {(client.size_min || client.size_max) && (
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-xs text-slate-400 mb-0.5">Metrekare</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {client.size_min ? `${client.size_min} m²` : "—"}{" – "}{client.size_max ? `${client.size_max} m²` : "—"}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {client.rooms && (Array.isArray(client.rooms) ? client.rooms : [client.rooms]).length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1.5">Oda Sayısı</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(Array.isArray(client.rooms) ? client.rooms : [client.rooms]).map(r => (
+                  <span key={r} className="bg-green-50 text-green-700 text-xs px-2.5 py-1 rounded-full">{r}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {client.features_wanted.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1.5">İstenen Özellikler</p>
+              <div className="flex flex-wrap gap-1.5">
+                {client.features_wanted.map(f => <span key={f} className="bg-orange-50 text-orange-700 text-xs px-2.5 py-1 rounded-full">{f}</span>)}
+              </div>
+            </div>
+          )}
+
+          {client.notes && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Notlar</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{client.notes}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between gap-2 px-5 py-4 border-t border-slate-100">
+          <button onClick={onDelete} className="flex items-center gap-1.5 px-4 py-2 border border-red-200 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
+            <Trash2 size={14} /> Sil
+          </button>
+          <button onClick={onEdit} className="flex items-center gap-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+            <Pencil size={14} /> Düzenle
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DerivedSellerModal({ seller, onClose }: {
+  seller: { name: string; phone?: string; count: number; types: Set<string> };
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+          <div>
+            <h2 className="font-semibold text-slate-800">{seller.name}</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full mt-1.5 inline-flex items-center gap-1">
+              <Home size={10} /> Portföy Sahibi
+            </span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-3"><X size={18} /></button>
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          {seller.phone && (
+            <div className="flex items-center gap-2">
+              <a href={`tel:${seller.phone}`} className="text-sm text-slate-600 flex items-center gap-1.5 hover:underline">
+                <Phone size={13} className="text-slate-400" /> {seller.phone}
+              </a>
+              <a href={waLink(seller.phone)} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors">
+                <MessageCircle size={12} /> WhatsApp
+              </a>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1.5">
+            <span className="bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full">{seller.count} portföy</span>
+            {Array.from(seller.types).map(t => (
+              <span key={t} className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full">{t}</span>
+            ))}
+          </div>
+        </div>
+        <div className="px-5 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Kapat</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const emptyForm = {
   name: "",
   phone: "",
@@ -132,6 +301,8 @@ export default function ClientsPage() {
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const [viewingSeller, setViewingSeller] = useState<{ name: string; phone?: string; count: number; types: Set<string> } | null>(null);
 
   useEffect(() => {
     Promise.all([clientStore.getAll(), propertyStore.getAll()])
@@ -228,6 +399,17 @@ export default function ClientsPage() {
 
   return (
     <div>
+      {viewingClient && (
+        <ClientDetailModal
+          client={viewingClient}
+          onClose={() => setViewingClient(null)}
+          onEdit={() => { startEdit(viewingClient); setViewingClient(null); }}
+          onDelete={async () => { await deleteClient(viewingClient.id); setViewingClient(null); }}
+        />
+      )}
+      {viewingSeller && (
+        <DerivedSellerModal seller={viewingSeller} onClose={() => setViewingSeller(null)} />
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -367,7 +549,7 @@ export default function ClientsPage() {
                   ) : (
                     <div className="space-y-3">
                       {group.map((c) => (
-                        <div key={c.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                        <div key={c.id} onClick={() => setViewingClient(c)} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -392,8 +574,8 @@ export default function ClientsPage() {
                               {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
                             </div>
                             <div className="flex items-center gap-1 ml-3">
-                              <button onClick={() => startEdit(c)} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
-                              <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                              <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
+                              <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                             </div>
                           </div>
                         </div>
@@ -422,7 +604,7 @@ export default function ClientsPage() {
                     <div className="space-y-3">
                       {/* Portföy sahiplerinden türetilen satıcılar */}
                       {derivedSellers.map((s) => (
-                        <div key={`derived-${s.name}`} className="bg-white rounded-xl border border-dashed border-blue-200 shadow-sm p-4">
+                        <div key={`derived-${s.name}`} onClick={() => setViewingSeller(s)} className="bg-white rounded-xl border border-dashed border-blue-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -448,7 +630,7 @@ export default function ClientsPage() {
                       ))}
                       {/* Manuel eklenen satıcılar */}
                       {manualGroup.map((c) => (
-                        <div key={c.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                        <div key={c.id} onClick={() => setViewingClient(c)} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -473,8 +655,8 @@ export default function ClientsPage() {
                               {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
                             </div>
                             <div className="flex items-center gap-1 ml-3">
-                              <button onClick={() => startEdit(c)} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
-                              <button onClick={() => deleteClient(c.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                              <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
+                              <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                             </div>
                           </div>
                         </div>
