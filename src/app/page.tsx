@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 
@@ -169,6 +169,133 @@ function EditModal({ property, onClose, onSave }: {
   );
 }
 
+// ── Detay Modalı ────────────────────────────────────────────────────────────
+function DetailModal({ property, onClose, onEdit, onDelete }: {
+  property: Property;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const st = STATUS_LABELS[property.status] || { label: property.status, color: "bg-slate-100 text-slate-700" };
+  const hasDetails = property.size || property.rooms || property.floor != null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        {/* Başlık */}
+        <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-slate-800 text-base leading-tight">{property.title}</h2>
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">{property.type}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                {property.price_type === "kira" ? "Kiralık" : "Satılık"}
+              </span>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-3 flex-shrink-0"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 space-y-5">
+          {/* Konum */}
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <MapPin size={15} className="text-slate-400 flex-shrink-0" />
+            <span>{[property.neighborhood, property.district, property.city].filter(Boolean).join(", ")}</span>
+          </div>
+
+          {/* Fiyat */}
+          {property.price && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-0.5">Fiyat</p>
+              <p className="text-2xl font-bold text-slate-800">{property.price.toLocaleString("tr-TR")} ₺</p>
+            </div>
+          )}
+
+          {/* m² / Oda / Kat */}
+          {hasDetails && (
+            <div className="grid grid-cols-3 gap-2">
+              {property.size && (
+                <div className="bg-slate-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-slate-400 mb-0.5">Alan</p>
+                  <p className="font-semibold text-slate-700">{property.size} m²</p>
+                </div>
+              )}
+              {property.rooms && (
+                <div className="bg-slate-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-slate-400 mb-0.5">Oda</p>
+                  <p className="font-semibold text-slate-700">{property.rooms}</p>
+                </div>
+              )}
+              {property.floor != null && (
+                <div className="bg-slate-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-slate-400 mb-0.5">Kat</p>
+                  <p className="font-semibold text-slate-700">{property.floor}{property.total_floors ? `/${property.total_floors}` : ""}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Özellikler */}
+          {property.features.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Özellikler</p>
+              <div className="flex flex-wrap gap-1.5">
+                {property.features.map(f => (
+                  <span key={f} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{f}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sahip */}
+          {(property.owner_name || property.owner_phone) && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Portföy Sahibi</p>
+              <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
+                {property.owner_name && <p className="text-sm font-medium text-slate-700">{property.owner_name}</p>}
+                {property.owner_phone && (
+                  <a href={`tel:${property.owner_phone}`} className="text-sm text-amber-600 hover:underline flex items-center gap-1.5">
+                    <Phone size={13} /> {property.owner_phone}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Açıklama */}
+          {property.description && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Açıklama</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{property.description}</p>
+            </div>
+          )}
+
+          {/* Ham metin */}
+          {property.raw_text && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Ham Metin</p>
+              <pre className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3 whitespace-pre-wrap font-mono leading-relaxed">{property.raw_text}</pre>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between gap-2 px-5 py-4 border-t border-slate-100">
+          <button onClick={onDelete}
+            className="flex items-center gap-1.5 px-4 py-2 border border-red-200 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
+            <Trash2 size={14} /> Sil
+          </button>
+          <button onClick={onEdit}
+            className="flex items-center gap-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+            <Pencil size={14} /> Düzenle
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   musait: { label: "Müsait", color: "bg-green-100 text-green-800" },
   satildi: { label: "Satıldı", color: "bg-red-100 text-red-800" },
@@ -250,6 +377,7 @@ export default function PortfolioPage() {
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);
+  const [viewing, setViewing] = useState<Property | null>(null);
 
   useEffect(() => {
     propertyStore.getAll().then(data => {
@@ -312,6 +440,14 @@ export default function PortfolioPage() {
   return (
     <div>
       {editing && <EditModal property={editing} onClose={() => setEditing(null)} onSave={handleSaveEdit} />}
+      {viewing && (
+        <DetailModal
+          property={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={() => { setEditing(viewing); setViewing(null); }}
+          onDelete={async () => { await deleteProperty(viewing.id); setViewing(null); }}
+        />
+      )}
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -428,14 +564,14 @@ export default function PortfolioPage() {
           {filtered.map((p) => {
             const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
             return (
-              <div key={p.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4">
+              <div key={p.id} onClick={() => setViewing(p)} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-slate-800 text-sm leading-tight">{p.title}</h3>
                   <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                    <button onClick={() => setEditing(p)} className="text-slate-300 hover:text-amber-500 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); setEditing(p); }} className="text-slate-300 hover:text-amber-500 transition-colors">
                       <Pencil size={14} />
                     </button>
-                    <button onClick={() => deleteProperty(p.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                    <button onClick={e => { e.stopPropagation(); deleteProperty(p.id); }} className="text-slate-300 hover:text-red-500 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>
