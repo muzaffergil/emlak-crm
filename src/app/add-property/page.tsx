@@ -1,9 +1,11 @@
 "use client";
-import { useState } from "react";
-import { MessageSquare, ClipboardList, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { useRef, useState } from "react";
+import { MessageSquare, ClipboardList, CheckCircle, AlertCircle, ArrowRight, Camera, X } from "lucide-react";
 import { parsePropertyFromText } from "@/lib/claude";
 import { propertyStore, type Property } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
+import { applyWatermark, uploadPropertyPhoto } from "@/lib/watermark";
+import PhotoManager from "@/components/PhotoManager";
 
 const EXAMPLES = [
   "Kadıköy Moda'da 3+1 satılık daire, 120m², 5. kat, asansörlü, balkonlu, otoparklı, 8.500.000 TL",
@@ -56,7 +58,8 @@ function PillGroup({ label, options, value, onChange }: {
   );
 }
 
-function AddedCard({ p }: { p: Property }) {
+function AddedCard({ p, onPhotosChange }: { p: Property; onPhotosChange: (id: number, photos: string[]) => void }) {
+  const [photos, setPhotos] = useState<string[]>(p.photos ?? []);
   return (
     <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
       <div className="flex items-start gap-2 mb-2">
@@ -79,6 +82,14 @@ function AddedCard({ p }: { p: Property }) {
           {p.features.map(f => <span key={f} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{f}</span>)}
         </div>
       )}
+      <div className="ml-6 mt-3">
+        <p className="text-xs font-semibold text-slate-500 mb-2">Fotoğraflar</p>
+        <PhotoManager
+          propertyId={p.id}
+          photos={photos}
+          onChange={newPhotos => { setPhotos(newPhotos); onPhotosChange(p.id, newPhotos); }}
+        />
+      </div>
     </div>
   );
 }
@@ -93,6 +104,22 @@ export default function AddPropertyPage() {
   const [formError, setFormError] = useState("");
   const [added, setAdded] = useState<Property[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<Array<{ file: File; preview: string }>>([]);
+  const photoFileRef = useRef<HTMLInputElement>(null);
+
+  function handlePhotoFiles(files: FileList) {
+    const newItems = Array.from(files)
+      .filter(f => f.type.startsWith("image/"))
+      .map(file => ({ file, preview: URL.createObjectURL(file) }));
+    setPendingFiles(prev => [...prev, ...newItems]);
+  }
+
+  function removePending(i: number) {
+    setPendingFiles(prev => {
+      URL.revokeObjectURL(prev[i].preview);
+      return prev.filter((_, j) => j !== i);
+    });
+  }
 
   function f(key: keyof typeof EMPTY_FORM, val: string) {
     setForm(prev => ({ ...prev, [key]: val }));
@@ -147,6 +174,25 @@ export default function AddPropertyPage() {
         owner_name: form.owner_name.trim() || undefined,
         owner_phone: form.owner_phone.trim() || undefined,
       });
+
+      // Fotoğraf yükle
+      if (pendingFiles.length > 0) {
+        try {
+          const photoUrls: string[] = [];
+          for (const { file } of pendingFiles) {
+            const blob = await applyWatermark(file);
+            const url = await uploadPropertyPhoto(property.id, blob);
+            photoUrls.push(url);
+          }
+          await propertyStore.update(property.id, { photos: photoUrls });
+          property.photos = photoUrls;
+        } catch {
+          // Fotoğraf başarısız olsa da portföy eklendi
+        }
+        pendingFiles.forEach(({ preview }) => URL.revokeObjectURL(preview));
+        setPendingFiles([]);
+      }
+
       setAdded(prev => [property, ...prev]);
       setForm({ ...EMPTY_FORM });
       setFormRooms([]);
@@ -290,6 +336,41 @@ export default function AddPropertyPage() {
               onChange={e => f("description", e.target.value)} />
           </div>
 
+          {/* Fotoğraflar */}
+          <div>
+            <label className={labelCls}>Fotoğraflar (opsiyonel — EstateIQ filigranı otomatik eklenir)</label>
+            <div className="flex flex-wrap gap-2">
+              {pendingFiles.map(({ preview }, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">
+                  <img src={preview} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePending(i)}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => photoFileRef.current?.click()}
+                className="w-20 h-20 border-2 border-dashed border-slate-300 hover:border-amber-400 rounded-lg flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-amber-500 transition-colors"
+              >
+                <Camera size={18} />
+                <span className="text-xs">Ekle</span>
+              </button>
+            </div>
+            <input
+              ref={photoFileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files?.length) handlePhotoFiles(e.target.files); }}
+            />
+          </div>
+
           {formError && (
             <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
               <AlertCircle size={16} /> {formError}
@@ -345,7 +426,15 @@ export default function AddPropertyPage() {
         <div>
           <h2 className="font-semibold text-slate-700 mb-3">Bu oturumda eklenenler</h2>
           <div className="space-y-3">
-            {added.map(p => <AddedCard key={p.id} p={p} />)}
+            {added.map(p => (
+              <AddedCard
+                key={p.id}
+                p={p}
+                onPhotosChange={(id, photos) =>
+                  setAdded(prev => prev.map(x => x.id === id ? { ...x, photos } : x))
+                }
+              />
+            ))}
           </div>
         </div>
       )}

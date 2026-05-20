@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2 } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ExcelTemplateModal from "@/components/ExcelTemplateModal";
+import PhotoManager from "@/components/PhotoManager";
 import { parsePropertyExcel, filterDuplicates } from "@/lib/excelImport";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
@@ -37,6 +38,7 @@ function EditModal({ property, onClose, onSave }: {
     owner_name: property.owner_name || "",
     owner_phone: property.owner_phone || "",
   });
+  const [photos, setPhotos] = useState<string[]>(property.photos ?? []);
   const [saving, setSaving] = useState(false);
 
   function f(key: keyof typeof form, val: string) {
@@ -63,6 +65,7 @@ function EditModal({ property, onClose, onSave }: {
       features: form.features.split(",").map(s => s.trim()).filter(Boolean),
       owner_name: form.owner_name.trim() || undefined,
       owner_phone: form.owner_phone.trim() || undefined,
+      photos: photos.length > 0 ? photos : undefined,
     };
     try {
       await propertyStore.update(property.id, updated);
@@ -164,6 +167,17 @@ function EditModal({ property, onClose, onSave }: {
               <label className={labelCls}>Açıklama</label>
               <textarea rows={3} className={inputCls} value={form.description} onChange={e => f("description", e.target.value)} />
             </div>
+
+            <div className="md:col-span-2">
+              <label className={labelCls}>
+                <span className="flex items-center gap-1.5"><Camera size={13} /> Fotoğraflar (EstateIQ filigranı eklenir)</span>
+              </label>
+              <PhotoManager
+                propertyId={property.id}
+                photos={photos}
+                onChange={setPhotos}
+              />
+            </div>
           </div>
         </div>
 
@@ -175,6 +189,40 @@ function EditModal({ property, onClose, onSave }: {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Fotoğraf Galerisi ───────────────────────────────────────────────────────
+function PhotoGallery({ photos }: { photos: string[] }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+  return (
+    <>
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <img src={lightbox} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
+          <button
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white rounded-full p-2"
+            onClick={() => setLightbox(null)}
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {photos.map((url, i) => (
+          <img
+            key={i}
+            src={url}
+            alt=""
+            onClick={() => setLightbox(url)}
+            className="w-28 h-28 flex-shrink-0 rounded-lg object-cover cursor-pointer border border-slate-200 hover:opacity-90 transition-opacity"
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -207,6 +255,11 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
         </div>
 
         <div className="overflow-y-auto px-5 py-4 space-y-5">
+          {/* Fotoğraf galerisi */}
+          {property.photos && property.photos.length > 0 && (
+            <PhotoGallery photos={property.photos} />
+          )}
+
           {/* Konum */}
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <MapPin size={15} className="text-slate-400 flex-shrink-0" />

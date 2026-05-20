@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { X, Plus, Trash2, Download, RotateCcw } from "lucide-react";
+import { X, Plus, Download, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import { downloadPropertyTemplate, DEFAULT_OPTIONS, type ExcelOptions } from "@/lib/excelImport";
 
 const STORAGE_KEY = "emlak_excel_options";
@@ -8,9 +8,26 @@ const STORAGE_KEY = "emlak_excel_options";
 function loadOptions(): ExcelOptions {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved) as ExcelOptions;
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<ExcelOptions>;
+      return {
+        types:         parsed.types         ?? [...DEFAULT_OPTIONS.types],
+        rooms:         parsed.rooms         ?? [...DEFAULT_OPTIONS.rooms],
+        cities:        parsed.cities        ?? [...DEFAULT_OPTIONS.cities],
+        districts:     parsed.districts     ?? [...DEFAULT_OPTIONS.districts],
+        neighborhoods: parsed.neighborhoods ?? JSON.parse(JSON.stringify(DEFAULT_OPTIONS.neighborhoods)),
+        maxFloor:      parsed.maxFloor      ?? DEFAULT_OPTIONS.maxFloor,
+      };
+    }
   } catch {}
-  return { ...DEFAULT_OPTIONS, types: [...DEFAULT_OPTIONS.types], rooms: [...DEFAULT_OPTIONS.rooms], cities: [...DEFAULT_OPTIONS.cities], districts: [...DEFAULT_OPTIONS.districts] };
+  return {
+    types:         [...DEFAULT_OPTIONS.types],
+    rooms:         [...DEFAULT_OPTIONS.rooms],
+    cities:        [...DEFAULT_OPTIONS.cities],
+    districts:     [...DEFAULT_OPTIONS.districts],
+    neighborhoods: JSON.parse(JSON.stringify(DEFAULT_OPTIONS.neighborhoods)),
+    maxFloor:      DEFAULT_OPTIONS.maxFloor,
+  };
 }
 
 function saveOptions(opts: ExcelOptions) {
@@ -23,9 +40,10 @@ interface TagListProps {
   onChange: (items: string[]) => void;
   fixed?: boolean;
   fixedItems?: string[];
+  compact?: boolean;
 }
 
-function TagList({ label, items, onChange, fixed, fixedItems }: TagListProps) {
+function TagList({ label, items, onChange, fixed, fixedItems, compact }: TagListProps) {
   const [input, setInput] = useState("");
 
   function add() {
@@ -37,7 +55,7 @@ function TagList({ label, items, onChange, fixed, fixedItems }: TagListProps) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{label}</p>
+      {label && <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{label}</p>}
       <div className="flex flex-wrap gap-1.5">
         {(fixedItems ?? items).map(item => (
           <span
@@ -56,7 +74,7 @@ function TagList({ label, items, onChange, fixed, fixedItems }: TagListProps) {
         ))}
       </div>
       {!fixed && (
-        <div className="flex gap-2">
+        <div className={`flex gap-2 ${compact ? "mt-1" : ""}`}>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -76,6 +94,34 @@ function TagList({ label, items, onChange, fixed, fixedItems }: TagListProps) {
   );
 }
 
+function DistrictNeighborhoods({
+  district,
+  items,
+  onChange,
+}: {
+  district: string;
+  items: string[];
+  onChange: (items: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-slate-100 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      >
+        <span>{district} <span className="text-xs text-slate-400 font-normal">({items.length} mahalle)</span></span>
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      </button>
+      {open && (
+        <div className="px-3 pb-3 pt-1 border-t border-slate-100">
+          <TagList label="" items={items} onChange={onChange} compact />
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   onClose: () => void;
 }
@@ -89,10 +135,12 @@ export default function ExcelTemplateModal({ onClose }: Props) {
 
   function reset() {
     setOpts({
-      types:     [...DEFAULT_OPTIONS.types],
-      rooms:     [...DEFAULT_OPTIONS.rooms],
-      cities:    [...DEFAULT_OPTIONS.cities],
-      districts: [...DEFAULT_OPTIONS.districts],
+      types:         [...DEFAULT_OPTIONS.types],
+      rooms:         [...DEFAULT_OPTIONS.rooms],
+      cities:        [...DEFAULT_OPTIONS.cities],
+      districts:     [...DEFAULT_OPTIONS.districts],
+      neighborhoods: JSON.parse(JSON.stringify(DEFAULT_OPTIONS.neighborhoods)),
+      maxFloor:      DEFAULT_OPTIONS.maxFloor,
     });
   }
 
@@ -140,7 +188,38 @@ export default function ExcelTemplateModal({ onClose }: Props) {
             onChange={v => update("districts", v)}
           />
 
-          {/* Sabit listeler — bilgi amaçlı */}
+          {/* Mahalleler */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Mahalleler (ilçeye göre)</p>
+            <div className="space-y-1.5">
+              {opts.districts.map(district => (
+                <DistrictNeighborhoods
+                  key={district}
+                  district={district}
+                  items={opts.neighborhoods[district] ?? []}
+                  onChange={v => update("neighborhoods", { ...opts.neighborhoods, [district]: v })}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Maksimum Kat */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Maksimum Kat Sayısı</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={opts.maxFloor}
+                onChange={e => update("maxFloor", Math.max(1, Math.min(100, Number(e.target.value))))}
+                className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+              />
+              <span className="text-xs text-slate-400">Kat sütunlarında 1–{opts.maxFloor} arası çıkar</span>
+            </div>
+          </div>
+
+          {/* Sabit listeler */}
           <div className="border-t border-slate-100 pt-4 space-y-3">
             <p className="text-xs text-slate-400">Aşağıdaki seçenekler sabittir, değiştirilemez:</p>
             <TagList label="Fiyat Türü" items={[]} onChange={() => {}} fixed fixedItems={["satis", "kira"]} />

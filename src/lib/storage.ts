@@ -19,6 +19,7 @@ export interface Property {
   raw_text?: string;
   owner_name?: string;
   owner_phone?: string;
+  photos?: string[];
   created_at: string;
 }
 
@@ -72,6 +73,7 @@ function toProperty(r: any): Property {
     raw_text: r.raw_text ?? undefined,
     owner_name: r.owner_name ?? undefined,
     owner_phone: r.owner_phone ?? undefined,
+    photos: Array.isArray(r.photos) && r.photos.length > 0 ? r.photos : undefined,
     created_at: r.created_at,
   };
 }
