@@ -215,16 +215,33 @@ export function computeMatches(
     if (clientData.budget_max && p.price && p.price > clientData.budget_max) continue;
 
     // ── Sıralama puanı (filtreden geçenler arasında) ─────────────────────────
-    let score = 50;
+    let score = 40;
 
-    if (p.price && clientData.budget_min && clientData.budget_max) {
-      if (p.price >= clientData.budget_min) { score += 10; reasons.push("Bütçe aralığında"); }
+    if (p.price && clientData.budget_max) {
+      const ratio = p.price / clientData.budget_max;
+      const inRange = !clientData.budget_min || p.price >= clientData.budget_min;
+      if (ratio <= 0.80 && inRange) {
+        score += 15;
+        reasons.push(`Bütçenin %${Math.round(ratio * 100)}'inde — avantajlı fiyat`);
+      } else if (inRange) {
+        score += 10;
+        reasons.push("Bütçe aralığında");
+      } else {
+        score += 6;
+        reasons.push("Bütçeye uygun");
+      }
     }
 
     if (p.size && (clientData.size_min || clientData.size_max)) {
-      const ok = (!clientData.size_min || p.size >= clientData.size_min) &&
-                 (!clientData.size_max || p.size <= clientData.size_max);
-      if (ok) { score += 10; reasons.push(`${p.size}m² uyuyor`); }
+      const aboveMin = !clientData.size_min || p.size >= clientData.size_min;
+      const belowMax = !clientData.size_max || p.size <= clientData.size_max;
+      if (aboveMin && belowMax) {
+        score += 10;
+        reasons.push(`${p.size}m² — istenen aralıkta`);
+      } else if (aboveMin) {
+        score += 4;
+        reasons.push(`${p.size}m² — minimum aralıkta`);
+      }
     }
 
     if (clientData.features_wanted.length > 0 && p.features.length > 0) {
@@ -232,7 +249,7 @@ export function computeMatches(
         p.features.some(pf => normalizeText(pf).includes(normalizeText(fw)) || normalizeText(fw).includes(normalizeText(pf)))
       );
       if (matched.length > 0) {
-        score += Math.min(matched.length * 5, 20);
+        score += Math.min(matched.length * 5, 25);
         reasons.push(`${matched.join(", ")} özelliği var`);
       }
     }

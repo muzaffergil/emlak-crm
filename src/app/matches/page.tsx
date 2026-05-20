@@ -1,12 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone } from "lucide-react";
+import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone, MessageCircle } from "lucide-react";
 import { clientStore, propertyStore, matchStore, type Match, type Property } from "@/lib/storage";
 import { computeMatches } from "@/lib/claude";
 
 interface RichMatch extends Match {
   client_name: string;
   client_phone?: string;
+  client_budget_min?: number;
+  client_budget_max?: number;
+  client_size_min?: number;
+  client_size_max?: number;
+  client_rooms?: string[];
+  client_property_types: string[];
   property_title: string;
   property_city: string;
   property_district?: string;
@@ -22,12 +28,60 @@ const TYPE_LABELS: Record<string, string> = {
   ofis: "Ofis", depo: "Depo", bina: "Bina",
 };
 
-function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: { property: Property; reasons: string[]; clientName: string; clientPhone?: string; onClose: () => void }) {
+function buildClientMessage(
+  property: Property,
+  clientName: string,
+  score: number,
+  reasons: string[]
+): string {
+  const loc = [property.neighborhood, property.district, property.city].filter(Boolean).join(", ");
+  const priceStr = property.price
+    ? `${property.price.toLocaleString("tr-TR")} ₺${property.price_type === "kira" ? "/ay" : ""}`
+    : "";
+  const sizeStr = [property.size && `${property.size}m²`, property.rooms].filter(Boolean).join(" • ");
+  const topReasons = reasons.slice(0, 4).map(r => `✓ ${r}`).join("\n");
+
+  return [
+    `Merhaba ${clientName}!`,
+    ``,
+    `Size uygun bir portföy var 🏠`,
+    ``,
+    `📍 ${property.title}`,
+    loc ? `🗺️ ${loc}` : null,
+    priceStr ? `💰 ${priceStr}` : null,
+    sizeStr ? `📐 ${sizeStr}` : null,
+    `⭐ Uyum Puanı: ${score}/100`,
+    ``,
+    topReasons,
+    ``,
+    `Görmek ister misiniz?`,
+  ].filter(s => s !== null).join("\n");
+}
+
+function PropertyModal({
+  property, reasons, clientName, clientPhone, score,
+  clientBudgetMin, clientBudgetMax, clientSizeMin, clientSizeMax, clientRooms,
+  onClose,
+}: {
+  property: Property;
+  reasons: string[];
+  clientName: string;
+  clientPhone?: string;
+  score: number;
+  clientBudgetMin?: number;
+  clientBudgetMax?: number;
+  clientSizeMin?: number;
+  clientSizeMax?: number;
+  clientRooms?: string[];
+  onClose: () => void;
+}) {
+  const hasClientPrefs = clientBudgetMin || clientBudgetMax || clientSizeMin || clientSizeMax || (clientRooms?.length ?? 0) > 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -42,7 +96,7 @@ function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: 
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4">
+        <div className="overflow-y-auto p-4 space-y-4">
           {/* Müşteri + Sahip bilgisi */}
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
@@ -66,6 +120,28 @@ function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: 
               </div>
             </div>
           </div>
+
+          {/* Müşteri tercihleri özeti */}
+          {hasClientPrefs && (
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-xs font-semibold text-amber-700 uppercase mb-2">Müşteri Tercihleri</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(clientBudgetMin || clientBudgetMax) && (
+                  <span className="bg-white border border-amber-200 text-amber-800 text-xs px-2.5 py-1 rounded-full">
+                    💰 {clientBudgetMin ? `${clientBudgetMin.toLocaleString("tr-TR")} – ` : "max "}{clientBudgetMax?.toLocaleString("tr-TR")} ₺
+                  </span>
+                )}
+                {(clientSizeMin || clientSizeMax) && (
+                  <span className="bg-white border border-amber-200 text-amber-800 text-xs px-2.5 py-1 rounded-full">
+                    📐 {clientSizeMin ?? "?"} – {clientSizeMax ?? "?"} m²
+                  </span>
+                )}
+                {clientRooms?.map(r => (
+                  <span key={r} className="bg-white border border-amber-200 text-amber-800 text-xs px-2.5 py-1 rounded-full">{r}</span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Fiyat + Temel bilgiler */}
           <div className="grid grid-cols-2 gap-3">
@@ -158,6 +234,31 @@ function PropertyModal({ property, reasons, clientName, clientPhone, onClose }: 
             </div>
           )}
         </div>
+
+        {/* Footer: WhatsApp + Sahibi Ara + Kapat */}
+        <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100">
+          {clientPhone && (
+            <a
+              href={`https://wa.me/${clientPhone.replace(/\D/g, "").replace(/^0/, "90")}?text=${encodeURIComponent(buildClientMessage(property, clientName, score, reasons))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+            >
+              <MessageCircle size={14} /> Müşteriye Yaz
+            </a>
+          )}
+          {property.owner_phone && (
+            <a
+              href={`tel:${property.owner_phone}`}
+              className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <Phone size={14} /> Sahibi Ara
+            </a>
+          )}
+          <button onClick={onClose} className="ml-auto px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+            Kapat
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -183,6 +284,12 @@ export default function MatchesPage() {
         ...m,
         client_name: c?.name || "Bilinmiyor",
         client_phone: c?.phone,
+        client_budget_min: c?.budget_min,
+        client_budget_max: c?.budget_max,
+        client_size_min: c?.size_min,
+        client_size_max: c?.size_max,
+        client_rooms: c?.rooms ?? [],
+        client_property_types: c?.property_types ?? [],
         property_title: p?.title || "Bilinmiyor",
         property_city: p?.city || "",
         property_district: p?.district,
@@ -368,8 +475,14 @@ export default function MatchesPage() {
         <PropertyModal
           property={selected.property}
           reasons={selected.reasons}
+          score={selected.score}
           clientName={selected.client_name}
           clientPhone={selected.client_phone}
+          clientBudgetMin={selected.client_budget_min}
+          clientBudgetMax={selected.client_budget_max}
+          clientSizeMin={selected.client_size_min}
+          clientSizeMax={selected.client_size_max}
+          clientRooms={selected.client_rooms}
           onClose={() => setSelected(null)}
         />
       )}
