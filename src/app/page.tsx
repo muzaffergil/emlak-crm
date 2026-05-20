@@ -5,7 +5,8 @@ import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { downloadPropertyTemplate, parsePropertyExcel, filterDuplicates } from "@/lib/excelImport";
+import ExcelTemplateModal from "@/components/ExcelTemplateModal";
+import { parsePropertyExcel, filterDuplicates } from "@/lib/excelImport";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
   ssr: false,
@@ -596,6 +597,7 @@ export default function PortfolioPage() {
   const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
   const [importResult, setImportResult] = useState<{ added: number; dup: number; skipped: number } | null>(null);
   const [importLoading, setImportLoading] = useState(false);
+  const [showExcelModal, setShowExcelModal] = useState(false);
   const excelFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -685,6 +687,7 @@ export default function PortfolioPage() {
           onConfirm={(id) => { setProperties(prev => prev.filter(p => p.id !== id)); setSelling(null); }}
         />
       )}
+      {showExcelModal && <ExcelTemplateModal onClose={() => setShowExcelModal(false)} />}
       {confirmDelete && (
         <ConfirmDialog
           message={`"${confirmDelete.title}" portföyünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
@@ -712,7 +715,7 @@ export default function PortfolioPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
-            onClick={() => downloadPropertyTemplate()}
+            onClick={() => setShowExcelModal(true)}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
           >
             <FileSpreadsheet size={15} /> Excel Şablonu
