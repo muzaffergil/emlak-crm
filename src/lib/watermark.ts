@@ -23,25 +23,17 @@ export async function applyWatermark(file: File): Promise<Blob> {
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, w, h);
 
-        const fontSize = Math.max(28, Math.min(w, h) / 7);
-        const step = fontSize * 2.8;
+        const fontSize = Math.max(32, Math.min(w, h) / 6);
 
         ctx.save();
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate(-Math.PI / 6);
         ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.30)";
         ctx.filter = "blur(1.5px)";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-
-        for (let y = -step; y < h + step * 2; y += step) {
-          for (let x = -step; x < w + step * 2; x += step) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(-Math.PI / 6);
-            ctx.fillText(WATERMARK_TEXT, 0, 0);
-            ctx.restore();
-          }
-        }
+        ctx.fillText(WATERMARK_TEXT, 0, 0);
         ctx.restore();
 
         URL.revokeObjectURL(objectUrl);
