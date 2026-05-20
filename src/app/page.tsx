@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle } from "lucide-react";
 import { propertyStore, type Property } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 
@@ -252,12 +252,22 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
           {(property.owner_name || property.owner_phone) && (
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Portföy Sahibi</p>
-              <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
+              <div className="bg-slate-50 rounded-lg p-3 space-y-2">
                 {property.owner_name && <p className="text-sm font-medium text-slate-700">{property.owner_name}</p>}
                 {property.owner_phone && (
-                  <a href={`tel:${property.owner_phone}`} className="text-sm text-amber-600 hover:underline flex items-center gap-1.5">
-                    <Phone size={13} /> {property.owner_phone}
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a href={`tel:${property.owner_phone}`} className="text-sm text-slate-600 hover:underline flex items-center gap-1.5">
+                      <Phone size={13} className="text-slate-400" /> {property.owner_phone}
+                    </a>
+                    <a
+                      href={`https://wa.me/${property.owner_phone.replace(/\D/g, "").replace(/^0/, "90")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
+                    >
+                      <MessageCircle size={12} /> WhatsApp
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
