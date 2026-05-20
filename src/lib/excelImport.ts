@@ -100,8 +100,6 @@ export async function downloadPropertyTemplate(opts: ExcelOptions = DEFAULT_OPTI
   ws["!cols"][0] = { wch: 32 };
   ws["!cols"][12] = { wch: 28 };
   ws["!cols"][13] = { wch: 28 };
-  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
   // Açıklamalar sayfası
   const infoWs = XLSX.utils.aoa_to_sheet([
     ["Alan",          "Açıklama"],
@@ -129,8 +127,10 @@ export async function downloadPropertyTemplate(opts: ExcelOptions = DEFAULT_OPTI
 
   const dvXml = buildDataValidationsXml(opts);
 
-  // </worksheet> kapanış etiketinden önce ekle
-  const patched = sheetXml.replace("</worksheet>", `${dvXml}</worksheet>`);
+  // dataValidations, sheetData'dan hemen sonra gelmeli (OOXML sırası)
+  const patched = sheetXml.includes("</sheetData>")
+    ? sheetXml.replace("</sheetData>", `</sheetData>${dvXml}`)
+    : sheetXml.replace("</worksheet>", `${dvXml}</worksheet>`);
   zip.file(sheetPath, patched);
 
   const output = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
