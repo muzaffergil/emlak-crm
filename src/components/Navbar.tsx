@@ -95,7 +95,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4">
         {/* Ana satır */}
         <div className="flex items-center h-14">
-          <span className="font-bold text-lg text-amber-500 mr-6">EmlakCRM</span>
+          <span className="font-bold text-lg text-amber-500 mr-6">EstateIQ</span>
 
           {/* Masaüstü linkleri */}
           <div className="hidden md:flex items-center gap-2">

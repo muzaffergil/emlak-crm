@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EmlakCRM",
+  title: "EstateIQ",
   description: "Emlak portföy ve müşteri yönetimi",
 };
 

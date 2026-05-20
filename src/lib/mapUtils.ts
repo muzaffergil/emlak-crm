@@ -81,7 +81,7 @@ export async function geocodeProperty(p: Property): Promise<[number, number] | n
     const q = encodeURIComponent(parts.join(", "));
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=tr`,
-      { headers: { "Accept-Language": "tr", "User-Agent": "EmlakCRM/1.0 muzaffergil@gmail.com" } }
+      { headers: { "Accept-Language": "tr", "User-Agent": "EstateIQ/1.0 muzaffergil@gmail.com" } }
     );
     const data = await res.json() as Array<{ lat: string; lon: string }>;
     if (data[0]) {
