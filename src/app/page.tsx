@@ -1,8 +1,14 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
+
+const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
+  ssr: false,
+  loading: () => <div className="h-44 bg-slate-100 rounded-lg animate-pulse" />,
+});
 
 // ── Düzenleme Modalı ────────────────────────────────────────────────────────
 function EditModal({ property, onClose, onSave }: {
@@ -272,6 +278,12 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
               </div>
             </div>
           )}
+
+          {/* Konum haritası */}
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Konum</p>
+            <PropertyLocationMap property={property} />
+          </div>
 
           {/* Açıklama */}
           {property.description && (
