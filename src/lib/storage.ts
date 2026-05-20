@@ -305,6 +305,11 @@ export const saleStore = {
     return toSale(row);
   },
 
+  async update(id: number, payload: { property_data?: Property; buyer_name?: string; buyer_phone?: string; sold_at?: string }): Promise<void> {
+    const { error } = await supabase.from("sales").update(payload).eq("id", id);
+    if (error) throw error;
+  },
+
   async delete(id: number): Promise<void> {
     const { error } = await supabase.from("sales").delete().eq("id", id);
     if (error) throw error;
