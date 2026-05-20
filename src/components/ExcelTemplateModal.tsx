@@ -96,9 +96,9 @@ export default function ExcelTemplateModal({ onClose }: Props) {
     });
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     saveOptions(opts);
-    downloadPropertyTemplate(opts);
+    await downloadPropertyTemplate(opts);
     onClose();
   }
 

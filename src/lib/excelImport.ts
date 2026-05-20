@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
 import type { Property } from "./storage";
 
 // Özelleştirilebilir seçenek grupları
@@ -19,17 +20,17 @@ export const DEFAULT_OPTIONS: ExcelOptions = {
 // Sütun sırası (A→P)
 const COLUMNS = [
   { header: "Başlık *",       field: "title",        hint: "Örn: Güzel 3+1 Daire" },
-  { header: "Tip *",          field: "type",         hint: "daire / villa / arsa ..." },
-  { header: "Şehir",          field: "city",         hint: "Gaziantep" },
-  { header: "İlçe",           field: "district",     hint: "Şahinbey" },
-  { header: "Mahalle",        field: "neighborhood", hint: "İncilipınar" },
+  { header: "Tip *",          field: "type",         hint: "Listeden seçin ▼" },
+  { header: "Şehir",          field: "city",         hint: "Listeden seçin ▼" },
+  { header: "İlçe",           field: "district",     hint: "Listeden seçin ▼" },
+  { header: "Mahalle",        field: "neighborhood", hint: "Serbest metin" },
   { header: "Fiyat",          field: "price",        hint: "1500000" },
-  { header: "Fiyat Türü *",  field: "price_type",   hint: "satis veya kira" },
+  { header: "Fiyat Türü *",  field: "price_type",   hint: "Listeden seçin ▼" },
   { header: "Alan (m²)",      field: "size",         hint: "120" },
-  { header: "Oda Sayısı",     field: "rooms",        hint: "3+1" },
+  { header: "Oda Sayısı",     field: "rooms",        hint: "Listeden seçin ▼" },
   { header: "Kat",            field: "floor",        hint: "3" },
   { header: "Toplam Kat",     field: "total_floors", hint: "8" },
-  { header: "Durum *",        field: "status",       hint: "musait / kiralik / rezerve / satildi" },
+  { header: "Durum *",        field: "status",       hint: "Listeden seçin ▼" },
   { header: "Özellikler",     field: "features",     hint: "Balkon, Asansör (virgülle ayır)" },
   { header: "Açıklama",       field: "description",  hint: "Serbest metin" },
   { header: "Sahip Adı",      field: "owner_name",   hint: "Ahmet Yılmaz" },
@@ -55,108 +56,92 @@ const EXAMPLE_ROW: Record<string, string | number> = {
   "Sahip Telefonu": "05321234567",
 };
 
-// Sütun harfi (0-indexed) → "A", "B", …
-function colLetter(idx: number): string {
+// Excel sütun harfi (0-indexed): 0→A, 1→B …
+function col(idx: number): string {
   return String.fromCharCode(65 + idx);
 }
 
+// XML için özel karakterleri escape et
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Veri doğrulama XML bloğu oluştur
+function buildDataValidationsXml(opts: ExcelOptions): string {
+  const rules: { sqref: string; formula1: string }[] = [
+    { sqref: `${col(1)}3:${col(1)}10000`,  formula1: opts.types.map(esc).join(",") },      // Tip
+    { sqref: `${col(2)}3:${col(2)}10000`,  formula1: opts.cities.map(esc).join(",") },     // Şehir
+    { sqref: `${col(3)}3:${col(3)}10000`,  formula1: opts.districts.map(esc).join(",") },  // İlçe
+    { sqref: `${col(6)}3:${col(6)}10000`,  formula1: "satis,kira" },                       // Fiyat Türü
+    { sqref: `${col(8)}3:${col(8)}10000`,  formula1: opts.rooms.map(esc).join(",") },      // Oda Sayısı
+    { sqref: `${col(11)}3:${col(11)}10000`, formula1: "musait,kiralik,rezerve,satildi" },  // Durum
+  ];
+
+  const dvItems = rules.map(r =>
+    `<dataValidation type="list" showDropDown="0" sqref="${r.sqref}">` +
+    `<formula1>&quot;${r.formula1}&quot;</formula1>` +
+    `</dataValidation>`
+  ).join("");
+
+  return `<dataValidations count="${rules.length}">${dvItems}</dataValidations>`;
+}
+
 // ── Şablon oluştur ve indir ────────────────────────────────────────────────────
-export function downloadPropertyTemplate(opts: ExcelOptions = DEFAULT_OPTIONS): void {
+export async function downloadPropertyTemplate(opts: ExcelOptions = DEFAULT_OPTIONS): Promise<void> {
   const wb = XLSX.utils.book_new();
 
-  // ── 1. Gizli doğrulama sayfası (dropdown kaynakları) ──────────────────────
-  const maxLen = Math.max(opts.types.length, opts.rooms.length, opts.cities.length, opts.districts.length, 4, 4);
-  const validData: (string | undefined)[][] = Array.from({ length: maxLen }, (_, i) => [
-    opts.types[i],
-    opts.rooms[i],
-    opts.cities[i],
-    opts.districts[i],
-    i < 2 ? (["satis", "kira"][i]) : undefined,
-    i < 4 ? (["musait", "kiralik", "rezerve", "satildi"][i]) : undefined,
-  ]);
-  const validWs = XLSX.utils.aoa_to_sheet(validData);
-  XLSX.utils.book_append_sheet(wb, validWs, "_Secenekler");
-
-  // ── 2. Ana portföy sayfası ─────────────────────────────────────────────────
   const headers = COLUMNS.map(c => c.header);
   const hints   = COLUMNS.map(c => c.hint);
   const example = COLUMNS.map(c => EXAMPLE_ROW[c.header] ?? "");
 
   const ws = XLSX.utils.aoa_to_sheet([headers, hints, example]);
 
-  // Sütun genişlikleri
   ws["!cols"] = COLUMNS.map(() => ({ wch: 18 }));
-  ws["!cols"][0] = { wch: 30 }; // Başlık daha geniş
-  ws["!cols"][12] = { wch: 28 }; // Özellikler
-  ws["!cols"][13] = { wch: 28 }; // Açıklama
-
-  // Satır dondur (başlık sabit kalsın)
+  ws["!cols"][0] = { wch: 32 };
+  ws["!cols"][12] = { wch: 28 };
+  ws["!cols"][13] = { wch: 28 };
   ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
-  // ── Dropdown doğrulama ─────────────────────────────────────────────────────
-  // Veri satırları 3. satırdan başlıyor (0-indexed: row 2), 10000'e kadar
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dv: any[] = [
-    {
-      // Tip — B sütunu
-      sqref: `${colLetter(1)}3:${colLetter(1)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$A$1:$A$${opts.types.length}`,
-    },
-    {
-      // Şehir — C sütunu
-      sqref: `${colLetter(2)}3:${colLetter(2)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$C$1:$C$${opts.cities.length}`,
-    },
-    {
-      // İlçe — D sütunu
-      sqref: `${colLetter(3)}3:${colLetter(3)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$D$1:$D$${opts.districts.length}`,
-    },
-    {
-      // Fiyat Türü — G sütunu
-      sqref: `${colLetter(6)}3:${colLetter(6)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$E$1:$E$2`,
-    },
-    {
-      // Oda Sayısı — I sütunu
-      sqref: `${colLetter(8)}3:${colLetter(8)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$B$1:$B$${opts.rooms.length}`,
-    },
-    {
-      // Durum — L sütunu
-      sqref: `${colLetter(11)}3:${colLetter(11)}10000`,
-      type: "list",
-      formula1: `_Secenekler!$F$1:$F$4`,
-    },
-  ];
-  ws["!dataValidation"] = dv;
-
-  XLSX.utils.book_append_sheet(wb, ws, "Portföy");
 
   // Açıklamalar sayfası
   const infoWs = XLSX.utils.aoa_to_sheet([
-    ["Alan",          "Açıklama / Geçerli Değerler"],
-    ["Başlık *",      "Zorunlu. Portföy adı."],
-    ["Tip *",         "Zorunlu. Açılır listeden seçin."],
+    ["Alan",          "Açıklama"],
+    ["Başlık *",      "Zorunlu alan."],
+    ["Tip *",         "Açılır listeden seçin."],
     ["Fiyat Türü *", "satis veya kira"],
     ["Durum *",       "musait / kiralik / rezerve / satildi"],
-    ["Fiyat",         "Rakam girin, ₺ işareti koymayın."],
-    ["Alan (m²)",     "Rakam girin."],
-    ["Özellikler",    "Virgülle ayırın: Balkon, Asansör, Otopark"],
+    ["Fiyat",         "Rakam girin, ₺ koymayın."],
+    ["Özellikler",    "Virgülle ayırın: Balkon, Asansör"],
     [],
-    ["NOT:", "* işaretli sütunlar zorunludur."],
-    ["NOT:", "2. satır açıklama, 3. satır örnek — silebilirsiniz."],
-    ["NOT:", "Verilerinizi 4. satırdan itibaren girin."],
+    ["NOT:", "* zorunlu alan. 2. satır açıklama, 3. satır örnek — silebilirsiniz. 4. satırdan girin."],
   ]);
   infoWs["!cols"] = [{ wch: 16 }, { wch: 55 }];
+
+  XLSX.utils.book_append_sheet(wb, ws, "Portföy");
   XLSX.utils.book_append_sheet(wb, infoWs, "Açıklamalar");
 
-  XLSX.writeFile(wb, "portfoy-sablonu.xlsx");
+  // xlsx ile yaz → Uint8Array
+  const xlsxBuf: Uint8Array = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  // JSZip ile aç, sheet1.xml'e data validation XML enjekte et
+  const zip = await JSZip.loadAsync(xlsxBuf);
+  const sheetPath = "xl/worksheets/sheet1.xml";
+  const sheetXml = await zip.file(sheetPath)!.async("string");
+
+  const dvXml = buildDataValidationsXml(opts);
+
+  // </worksheet> kapanış etiketinden önce ekle
+  const patched = sheetXml.replace("</worksheet>", `${dvXml}</worksheet>`);
+  zip.file(sheetPath, patched);
+
+  const output = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+
+  const blob = new Blob([output.buffer as ArrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = "portfoy-sablonu.xlsx";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── Excel dosyasını oku ve Property listesine dönüştür ────────────────────────
@@ -168,8 +153,7 @@ export async function parsePropertyExcel(
   const ws   = wb.Sheets[wb.SheetNames[0]];
   const raw  = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", range: 1 });
 
-  // 1. satır (index 0) hint/açıklama satırı — atla
-  const dataRows = raw.slice(1);
+  const dataRows = raw.slice(1); // 2. satır hint — atla
   let skippedCount = 0;
   const rows: Omit<Property, "id" | "created_at">[] = [];
 
