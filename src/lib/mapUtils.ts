@@ -21,7 +21,7 @@ function norm(s: string): string {
     .replace(/[şŞ]/g, "s").replace(/[öÖ]/g, "o").replace(/[çÇ]/g, "c");
 }
 
-export function getPropertyCoords(p: Property): [number, number] | null {
+function staticCoords(p: Property): [number, number] | null {
   if (p.district) {
     const nd = norm(p.district);
     for (const [key, coords] of Object.entries(DISTRICT_COORDS)) {
@@ -30,4 +30,68 @@ export function getPropertyCoords(p: Property): [number, number] | null {
   }
   if (p.city && norm(p.city).includes("gaziantep")) return GAZIANTEP_CENTER;
   return null;
+}
+
+// Harita ilk yüklenirken senkron koordinat — en azından şehir merkezini göster
+export function getInitialCoords(p: Property): [number, number] {
+  const cached = fromCache(cacheKey(p));
+  if (cached) return cached;
+  return staticCoords(p) ?? GAZIANTEP_CENTER;
+}
+
+// Geriye dönük uyumluluk
+export function getPropertyCoords(p: Property): [number, number] | null {
+  const cached = fromCache(cacheKey(p));
+  if (cached) return cached;
+  return staticCoords(p);
+}
+
+function cacheKey(p: Property): string {
+  return `geo:${[p.neighborhood, p.district, p.city].filter(Boolean).join(",")}`;
+}
+
+function fromCache(key: string): [number, number] | null {
+  try {
+    const v = sessionStorage.getItem(key);
+    if (!v) return null;
+    const parsed = JSON.parse(v) as [number, number];
+    return parsed;
+  } catch { return null; }
+}
+
+function toCache(key: string, coords: [number, number]): void {
+  try { sessionStorage.setItem(key, JSON.stringify(coords)); } catch {}
+}
+
+export async function geocodeProperty(p: Property): Promise<[number, number] | null> {
+  const key = cacheKey(p);
+
+  const cached = fromCache(key);
+  if (cached) return cached;
+
+  // Mahalle varsa hassas sonuç için onu da ekle
+  const parts = [p.neighborhood, p.district, p.city || "Gaziantep", "Türkiye"].filter(Boolean);
+  if (parts.length < 2) {
+    const fb = staticCoords(p) ?? GAZIANTEP_CENTER;
+    toCache(key, fb);
+    return fb;
+  }
+
+  try {
+    const q = encodeURIComponent(parts.join(", "));
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=tr`,
+      { headers: { "Accept-Language": "tr", "User-Agent": "EmlakCRM/1.0 muzaffergil@gmail.com" } }
+    );
+    const data = await res.json() as Array<{ lat: string; lon: string }>;
+    if (data[0]) {
+      const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      toCache(key, coords);
+      return coords;
+    }
+  } catch { /* ağ hatası — static fallback */ }
+
+  const fallback = staticCoords(p) ?? GAZIANTEP_CENTER;
+  toCache(key, fallback);
+  return fallback;
 }

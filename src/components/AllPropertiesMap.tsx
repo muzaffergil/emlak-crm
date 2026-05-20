@@ -1,7 +1,8 @@
 "use client";
 import "leaflet/dist/leaflet.css";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
-import { GAZIANTEP_CENTER, getPropertyCoords } from "@/lib/mapUtils";
+import { GAZIANTEP_CENTER, getInitialCoords, geocodeProperty } from "@/lib/mapUtils";
 import type { Property } from "@/lib/storage";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -17,6 +18,37 @@ interface Props {
 }
 
 export default function AllPropertiesMap({ properties, onSelect }: Props) {
+  const [coords, setCoords] = useState<Map<number, [number, number]>>(() => {
+    const m = new Map<number, [number, number]>();
+    for (const p of properties) {
+      m.set(p.id, getInitialCoords(p));
+    }
+    return m;
+  });
+
+  useEffect(() => {
+    if (properties.length === 0) return;
+    let cancelled = false;
+
+    (async () => {
+      for (const p of properties) {
+        if (cancelled) break;
+        const c = await geocodeProperty(p);
+        if (c && !cancelled) {
+          setCoords(prev => {
+            const next = new Map(prev);
+            next.set(p.id, c);
+            return next;
+          });
+        }
+        // Nominatim: max 1 istek/saniye
+        if (!cancelled) await new Promise(r => setTimeout(r, 1150));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [properties]);
+
   return (
     <MapContainer
       center={GAZIANTEP_CENTER}
@@ -29,13 +61,13 @@ export default function AllPropertiesMap({ properties, onSelect }: Props) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {properties.map(p => {
-        const coords = getPropertyCoords(p);
-        if (!coords) return null;
+        const c = coords.get(p.id);
+        if (!c) return null;
         const fill = STATUS_COLOR[p.status] ?? "#94a3b8";
         return (
           <CircleMarker
             key={p.id}
-            center={coords}
+            center={c}
             radius={11}
             pathOptions={{ color: "white", fillColor: fill, fillOpacity: 0.92, weight: 2.5 }}
             eventHandlers={{ click: () => onSelect(p) }}
