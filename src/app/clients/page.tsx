@@ -318,7 +318,11 @@ export default function ClientsPage() {
 
   // Portföy sahiplerinden türetilen satıcılar (manuel kayıt yoksa)
   const derivedSellers = useMemo(() => {
-    const manualNames = new Set(clients.map(c => c.name.trim().toLowerCase()));
+    const manualNames = new Set(
+      clients
+        .filter(c => c.intent === "aliyor" || c.intent === "kiraciyor")
+        .map(c => c.name.trim().toLowerCase())
+    );
     const map = new Map<string, { name: string; phone?: string; count: number; types: Set<string> }>();
     for (const p of properties) {
       if (!p.owner_name) continue;
@@ -460,8 +464,6 @@ export default function ClientsPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
                   <option value="aliyor">Satın Alıyor</option>
                   <option value="kiraciyor">Kiralamak İstiyor</option>
-                  <option value="satiyor">Satmak İstiyor</option>
-                  <option value="kiraya_veriyor">Kiraya Vermek İstiyor</option>
                 </select>
               </div>
               <div>
@@ -593,85 +595,45 @@ export default function ClientsPage() {
             })()}
           </div>
 
-          {/* Satıcılar kolonu */}
+          {/* Satıcılar kolonu — sadece portföy sahiplerinden türetilir */}
           <div>
-            {(() => {
-              const manualGroup = clients.filter((c) => ["satiyor", "kiraya_veriyor"].includes(c.intent));
-              const total = manualGroup.length + derivedSellers.length;
-              return (
-                <>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg border mb-3 text-blue-700 bg-blue-50 border-blue-200">
-                    <span className="font-semibold text-sm">Satıcılar</span>
-                    <span className="text-xs font-medium">{total} kişi</span>
-                  </div>
-                  {total === 0 ? (
-                    <p className="text-xs text-slate-400 text-center py-6">Kayıt yok</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {/* Portföy sahiplerinden türetilen satıcılar */}
-                      {derivedSellers.map((s) => (
-                        <div key={`derived-${s.name}`} onClick={() => setViewingSeller(s)} className="bg-white rounded-xl border border-dashed border-blue-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-slate-800">{s.name}</h3>
-                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                  <Home size={10} /> Portföy Sahibi
-                                </span>
-                              </div>
-                              {s.phone && (
-                                <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                                  <Phone size={11} />{s.phone}
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-1 text-xs">
-                                <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{s.count} portföy</span>
-                                {Array.from(s.types).map(t => (
-                                  <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {/* Manuel eklenen satıcılar */}
-                      {manualGroup.map((c) => (
-                        <div key={c.id} onClick={() => setViewingClient(c)} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-slate-800">{c.name}</h3>
-                                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{INTENT_LABELS[c.intent] || c.intent}</span>
-                              </div>
-                              <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
-                                {c.phone && <span className="flex items-center gap-1"><Phone size={11} />{c.phone}</span>}
-                                {c.email && <span className="flex items-center gap-1"><Mail size={11} />{c.email}</span>}
-                              </div>
-                              <div className="flex flex-wrap gap-1 text-xs">
-                                {c.property_types.map((t) => <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>)}
-                                {c.cities.map((city) => <span key={city} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{city}</span>)}
-                                {c.districts.map((d) => <span key={d} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{d}</span>)}
-                                {(c.neighborhoods ?? []).map((n) => <span key={n} className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{n}</span>)}
-                                {c.rooms && (Array.isArray(c.rooms) ? c.rooms : [c.rooms]).map((r) => (
-                                  <span key={r} className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">{r}</span>
-                                ))}
-                                {c.budget_max && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">max {c.budget_max.toLocaleString("tr-TR")} ₺</span>}
-                                {c.features_wanted.map((f) => <span key={f} className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">{f}</span>)}
-                              </div>
-                              {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
-                            </div>
-                            <div className="flex items-center gap-1 ml-3">
-                              <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
-                              <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
-                            </div>
-                          </div>
-                        </div>
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg border mb-3 text-blue-700 bg-blue-50 border-blue-200">
+              <span className="font-semibold text-sm">Satıcılar</span>
+              <span className="text-xs font-medium">{derivedSellers.length} kişi</span>
+            </div>
+            {derivedSellers.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-6">
+                Portföyde kayıtlı mülk sahibi yok.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {derivedSellers.map((s) => (
+                  <div
+                    key={`derived-${s.name}`}
+                    onClick={() => setViewingSeller(s)}
+                    className="bg-white rounded-xl border border-dashed border-blue-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-slate-800">{s.name}</h3>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Home size={10} /> Portföy Sahibi
+                      </span>
+                    </div>
+                    {s.phone && (
+                      <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                        <Phone size={11} />{s.phone}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-1 text-xs">
+                      <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">{s.count} portföy</span>
+                      {Array.from(s.types).map(t => (
+                        <span key={t} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{t}</span>
                       ))}
                     </div>
-                  )}
-                </>
-              );
-            })()}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
