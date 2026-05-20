@@ -176,7 +176,10 @@ function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
                 <div className="bg-slate-50 rounded-lg p-3">
                   <p className="text-xs text-slate-400 mb-0.5">Bütçe</p>
                   <p className="text-sm font-medium text-slate-700">
-                    {client.budget_min ? `${client.budget_min.toLocaleString("tr-TR")} ₺` : "—"}{" – "}{client.budget_max ? `${client.budget_max.toLocaleString("tr-TR")} ₺` : "—"}
+                    {client.budget_min && client.budget_max
+                      ? `${client.budget_min.toLocaleString("tr-TR")} ₺ – ${client.budget_max.toLocaleString("tr-TR")} ₺`
+                      : client.budget_min ? `min ${client.budget_min.toLocaleString("tr-TR")} ₺`
+                      : `max ${client.budget_max!.toLocaleString("tr-TR")} ₺`}
                   </p>
                 </div>
               )}
@@ -184,7 +187,10 @@ function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
                 <div className="bg-slate-50 rounded-lg p-3">
                   <p className="text-xs text-slate-400 mb-0.5">Metrekare</p>
                   <p className="text-sm font-medium text-slate-700">
-                    {client.size_min ? `${client.size_min} m²` : "—"}{" – "}{client.size_max ? `${client.size_max} m²` : "—"}
+                    {client.size_min && client.size_max
+                      ? `${client.size_min} m² – ${client.size_max} m²`
+                      : client.size_min ? `min ${client.size_min} m²`
+                      : `max ${client.size_max} m²`}
                   </p>
                 </div>
               )}
