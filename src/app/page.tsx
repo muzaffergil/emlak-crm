@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -192,24 +193,79 @@ function EditModal({ property, onClose, onSave }: {
   );
 }
 
+// ── Lightbox (portal — Leaflet z-index sorununu aşar) ──────────────────────
+function Lightbox({ photos, index, onClose, onNav }: {
+  photos: string[]; index: number; onClose: () => void; onNav: (i: number) => void;
+}) {
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && index > 0) onNav(index - 1);
+      if (e.key === "ArrowRight" && index < photos.length - 1) onNav(index + 1);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [index, photos.length, onClose, onNav]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/90 flex items-center justify-center"
+      style={{ zIndex: 99999 }}
+      onClick={onClose}
+    >
+      {/* Önceki */}
+      {index > 0 && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(index - 1); }}
+          className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+        >
+          <ChevronLeft size={28} />
+        </button>
+      )}
+
+      <img
+        src={photos[index]}
+        alt=""
+        className="max-w-[90vw] max-h-[85vh] rounded-lg object-contain select-none"
+        onClick={e => e.stopPropagation()}
+      />
+
+      {/* Sonraki */}
+      {index < photos.length - 1 && (
+        <button
+          onClick={e => { e.stopPropagation(); onNav(index + 1); }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+        >
+          <ChevronRight size={28} />
+        </button>
+      )}
+
+      {/* Kapatma */}
+      <button
+        className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+        onClick={onClose}
+      >
+        <X size={20} />
+      </button>
+
+      {/* Sayaç */}
+      {photos.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm px-3 py-1 rounded-full">
+          {index + 1} / {photos.length}
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 // ── Fotoğraf Galerisi ───────────────────────────────────────────────────────
 function PhotoGallery({ photos }: { photos: string[] }) {
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   return (
     <>
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <img src={lightbox} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
-          <button
-            className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white rounded-full p-2"
-            onClick={() => setLightbox(null)}
-          >
-            <X size={20} />
-          </button>
-        </div>
+      {lightboxIdx !== null && (
+        <Lightbox photos={photos} index={lightboxIdx} onClose={() => setLightboxIdx(null)} onNav={setLightboxIdx} />
       )}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {photos.map((url, i) => (
@@ -217,7 +273,7 @@ function PhotoGallery({ photos }: { photos: string[] }) {
             key={i}
             src={url}
             alt=""
-            onClick={() => setLightbox(url)}
+            onClick={() => setLightboxIdx(i)}
             className="w-28 h-28 flex-shrink-0 rounded-lg object-cover cursor-pointer border border-slate-200 hover:opacity-90 transition-opacity"
           />
         ))}
