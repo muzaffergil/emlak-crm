@@ -600,11 +600,11 @@ export default function PortfolioPage() {
   }, []);
 
   // Dinamik seçenekler
+  const ALL_TYPES = ["bina", "daire", "depo", "dükkan", "müstakil ev", "ofis", "tarla", "villa", "arsa"];
   const options = useMemo(() => {
-    const types = [...new Set(properties.map(p => p.type).filter(Boolean))].sort();
     const districts = [...new Set(properties.map(p => p.district).filter(Boolean))].sort() as string[];
     const rooms = [...new Set(properties.map(p => p.rooms).filter(Boolean))].sort() as string[];
-    return { types, districts, rooms };
+    return { types: ALL_TYPES, districts, rooms };
   }, [properties]);
 
   function set<K extends keyof Filters>(key: K, val: Filters[K]) {
