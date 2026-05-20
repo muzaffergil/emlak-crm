@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, PlusCircle, Download, Upload, Loader2, Menu, X } from "lucide-react";
+import { Building2, Users, Zap, PlusCircle, Download, Upload, Loader2, Menu, X, BadgeCheck } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 
 const links = [
@@ -10,6 +10,7 @@ const links = [
   { href: "/clients", label: "Müşteriler", icon: Users },
   { href: "/matches", label: "Eşleşmeler", icon: Zap },
   { href: "/add-property", label: "Portföy Ekle", icon: PlusCircle },
+  { href: "/sales", label: "Gerçekleşen Satışlar", icon: BadgeCheck },
 ];
 
 async function exportData() {

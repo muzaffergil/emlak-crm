@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle } from "lucide-react";
-import { propertyStore, type Property } from "@/lib/storage";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 
 // ── Düzenleme Modalı ────────────────────────────────────────────────────────
@@ -306,6 +306,180 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
   );
 }
 
+// ── Satış Modalı ────────────────────────────────────────────────────────────
+function SaleModal({ property, onClose, onConfirm }: {
+  property: Property;
+  onClose: () => void;
+  onConfirm: (propertyId: number) => void;
+}) {
+  const [buyers, setBuyers] = useState<Client[]>([]);
+  const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set());
+  const [selectedId, setSelectedId] = useState<number | "custom" | null>(null);
+  const [customName, setCustomName] = useState("");
+  const [customPhone, setCustomPhone] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([clientStore.getAll(), matchStore.getAll()]).then(([clients, matches]) => {
+      const b = clients.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor");
+      setBuyers(b);
+      const ids = new Set(matches.filter(m => m.property_id === property.id).map(m => m.client_id));
+      setMatchedIds(ids);
+      const firstMatch = b.find(c => ids.has(c.id));
+      if (firstMatch) setSelectedId(firstMatch.id);
+      else if (b.length === 0) setSelectedId("custom");
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [property.id]);
+
+  async function handleConfirm() {
+    if (!selectedId) return;
+    setSaving(true);
+    try {
+      let buyerName: string;
+      let buyerPhone: string | undefined;
+      let buyerId: number | undefined;
+      if (selectedId === "custom") {
+        buyerName = customName.trim();
+        buyerPhone = customPhone.trim() || undefined;
+      } else {
+        const b = buyers.find(x => x.id === selectedId)!;
+        buyerName = b.name;
+        buyerPhone = b.phone;
+        buyerId = b.id;
+      }
+      if (!buyerName) return;
+      await saleStore.add({ property_data: property, buyer_name: buyerName, buyer_phone: buyerPhone, buyer_id: buyerId });
+      await matchStore.deleteByProperty(property.id);
+      await propertyStore.delete(property.id);
+      onConfirm(property.id);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const matched = buyers.filter(b => matchedIds.has(b.id));
+  const others = buyers.filter(b => !matchedIds.has(b.id));
+  const canConfirm = selectedId === "custom" ? customName.trim().length > 0 : selectedId !== null;
+
+  const BuyerRow = ({ b, isMatch }: { b: Client; isMatch: boolean }) => (
+    <div
+      onClick={() => setSelectedId(b.id)}
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${
+        selectedId === b.id
+          ? "bg-amber-50 border-amber-400"
+          : "bg-white border-slate-200 hover:border-amber-300"
+      }`}
+    >
+      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+        selectedId === b.id ? "border-amber-500 bg-amber-500" : "border-slate-300"
+      }`}>
+        {selectedId === b.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-slate-800 text-sm">{b.name}</span>
+          {isMatch && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+              <Star size={9} /> Eşleşti
+            </span>
+          )}
+        </div>
+        {b.phone && <p className="text-xs text-slate-500 flex items-center gap-1"><Phone size={10} /> {b.phone}</p>}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div>
+            <h2 className="font-semibold text-slate-800">Satışı Tamamla</h2>
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{property.title}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4 space-y-4">
+          {loading ? (
+            <p className="text-sm text-slate-400 text-center py-4">Yükleniyor...</p>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-slate-600">Alıcıyı Seçin</p>
+
+              {matched.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-amber-600 uppercase">Eşleşen Alıcılar</p>
+                  {matched.map(b => <BuyerRow key={b.id} b={b} isMatch />)}
+                </div>
+              )}
+
+              {others.length > 0 && (
+                <div className="space-y-2">
+                  {matched.length > 0 && <p className="text-xs font-semibold text-slate-400 uppercase">Diğer Alıcılar</p>}
+                  {others.map(b => <BuyerRow key={b.id} b={b} isMatch={false} />)}
+                </div>
+              )}
+
+              {buyers.length === 0 && selectedId !== "custom" && (
+                <p className="text-xs text-slate-400 text-center py-2">Kayıtlı alıcı bulunamadı.</p>
+              )}
+
+              {/* Kayıtsız alıcı seçeneği */}
+              <div
+                onClick={() => setSelectedId("custom")}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-colors ${
+                  selectedId === "custom"
+                    ? "bg-amber-50 border-amber-400"
+                    : "bg-white border-dashed border-slate-300 hover:border-amber-300"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                  selectedId === "custom" ? "border-amber-500 bg-amber-500" : "border-slate-300"
+                }`}>
+                  {selectedId === "custom" && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                </div>
+                <span className="text-sm text-slate-600">Alıcı kayıtlı değil / farklı kişi</span>
+              </div>
+
+              {selectedId === "custom" && (
+                <div className="space-y-2 pl-1">
+                  <input
+                    placeholder="Alıcı adı soyadı *"
+                    value={customName}
+                    onChange={e => setCustomName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <input
+                    placeholder="Telefon (opsiyonel)"
+                    value={customPhone}
+                    onChange={e => setCustomPhone(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
+          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">İptal</button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving || !canConfirm}
+            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <CheckCircle2 size={15} />
+            {saving ? "Kaydediliyor..." : "Satışı Tamamla"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   musait: { label: "Müsait", color: "bg-green-100 text-green-800" },
   satildi: { label: "Satıldı", color: "bg-red-100 text-red-800" },
@@ -388,6 +562,7 @@ export default function PortfolioPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);
   const [viewing, setViewing] = useState<Property | null>(null);
+  const [selling, setSelling] = useState<Property | null>(null);
 
   useEffect(() => {
     propertyStore.getAll().then(data => {
@@ -450,6 +625,13 @@ export default function PortfolioPage() {
   return (
     <div>
       {editing && <EditModal property={editing} onClose={() => setEditing(null)} onSave={handleSaveEdit} />}
+      {selling && (
+        <SaleModal
+          property={selling}
+          onClose={() => setSelling(null)}
+          onConfirm={(id) => { setProperties(prev => prev.filter(p => p.id !== id)); setSelling(null); }}
+        />
+      )}
       {viewing && (
         <DetailModal
           property={viewing}
@@ -578,6 +760,9 @@ export default function PortfolioPage() {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-slate-800 text-sm leading-tight">{p.title}</h3>
                   <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla" className="text-slate-300 hover:text-green-600 transition-colors">
+                      <CheckCircle2 size={14} />
+                    </button>
                     <button onClick={e => { e.stopPropagation(); setEditing(p); }} className="text-slate-300 hover:text-amber-500 transition-colors">
                       <Pencil size={14} />
                     </button>

@@ -262,6 +262,55 @@ export const matchStore = {
   },
 };
 
+export interface Sale {
+  id: number;
+  property_data: Property;
+  buyer_name: string;
+  buyer_phone?: string;
+  buyer_id?: number;
+  sold_at: string;
+  created_at: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSale(r: any): Sale {
+  return {
+    id: Number(r.id),
+    property_data: r.property_data as Property,
+    buyer_name: r.buyer_name,
+    buyer_phone: r.buyer_phone ?? undefined,
+    buyer_id: r.buyer_id != null ? Number(r.buyer_id) : undefined,
+    sold_at: r.sold_at,
+    created_at: r.created_at,
+  };
+}
+
+export const saleStore = {
+  async getAll(): Promise<Sale[]> {
+    const { data, error } = await supabase
+      .from("sales")
+      .select("*")
+      .order("sold_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toSale);
+  },
+
+  async add(payload: { property_data: Property; buyer_name: string; buyer_phone?: string; buyer_id?: number }): Promise<Sale> {
+    const { data: row, error } = await supabase
+      .from("sales")
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    return toSale(row);
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase.from("sales").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
+
 export const settingsStore = {
   getApiKey(): string {
     if (typeof window === "undefined") return "";
