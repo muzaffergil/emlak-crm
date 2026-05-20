@@ -12,7 +12,7 @@ const EXAMPLES = [
   "Ataşehir'de ofis katı, 250m², asma kat, klimalı, güvenlikli plaza, 120.000 TL/ay",
 ];
 
-const TYPES = ["daire", "villa", "arsa", "dükkan", "ofis"];
+const TYPES = ["daire", "villa", "müstakil ev", "arsa", "dükkan", "ofis", "bina", "depo", "tarla"];
 const STATUSES = [
   { value: "musait", label: "Müsait" },
   { value: "rezerve", label: "Rezerve" },

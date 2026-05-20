@@ -90,7 +90,7 @@ function EditModal({ property, onClose, onSave }: {
             <div>
               <label className={labelCls}>Tip</label>
               <select className={inputCls} value={form.type} onChange={e => f("type", e.target.value)}>
-                {[["daire","Daire"],["villa","Villa"],["arsa","Arsa"],["dükkan","Dükkan"],["ofis","Ofis"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                {[["daire","Daire"],["villa","Villa"],["müstakil ev","Müstakil Ev"],["arsa","Arsa"],["dükkan","Dükkan"],["ofis","Ofis"],["bina","Bina"],["depo","Depo"],["tarla","Tarla"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
 
@@ -331,6 +331,7 @@ function SaleModal({ property, onClose, onConfirm }: {
   const [customPhone, setCustomPhone] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saleError, setSaleError] = useState("");
 
   useEffect(() => {
     Promise.all([clientStore.getAll(), matchStore.getAll()]).then(([clients, matches]) => {
@@ -348,6 +349,7 @@ function SaleModal({ property, onClose, onConfirm }: {
   async function handleConfirm() {
     if (!selectedId) return;
     setSaving(true);
+    setSaleError("");
     try {
       let buyerName: string;
       let buyerPhone: string | undefined;
@@ -366,6 +368,12 @@ function SaleModal({ property, onClose, onConfirm }: {
       await matchStore.deleteByProperty(property.id);
       await propertyStore.delete(property.id);
       onConfirm(property.id);
+    } catch (err) {
+      setSaleError(
+        err instanceof Error
+          ? err.message
+          : "Supabase'de 'sales' tablosu bulunamadı. Dashboard'dan oluşturmanız gerekiyor."
+      );
     } finally {
       setSaving(false);
     }
@@ -476,6 +484,14 @@ function SaleModal({ property, onClose, onConfirm }: {
           )}
         </div>
 
+        {saleError && (
+          <div className="mx-5 mb-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+            <strong>Hata:</strong> {saleError}
+            {saleError.includes("sales") && (
+              <p className="mt-1 text-red-600">Supabase Dashboard → SQL Editor'da <code>sales</code> tablosunu oluşturun.</p>
+            )}
+          </div>
+        )}
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">İptal</button>
           <button

@@ -318,23 +318,17 @@ export default function ClientsPage() {
 
   // Portföy sahiplerinden türetilen satıcılar (manuel kayıt yoksa)
   const derivedSellers = useMemo(() => {
-    const manualNames = new Set(
-      clients
-        .filter(c => c.intent === "aliyor" || c.intent === "kiraciyor")
-        .map(c => c.name.trim().toLowerCase())
-    );
     const map = new Map<string, { name: string; phone?: string; count: number; types: Set<string> }>();
     for (const p of properties) {
       if (!p.owner_name) continue;
       const key = p.owner_name.trim().toLowerCase();
-      if (manualNames.has(key)) continue;
       if (!map.has(key)) map.set(key, { name: p.owner_name, phone: p.owner_phone, count: 0, types: new Set() });
       const e = map.get(key)!;
       e.count++;
       e.types.add(p.price_type === "kira" ? "Kiralık" : "Satılık");
     }
     return Array.from(map.values());
-  }, [clients, properties]);
+  }, [properties]);
 
   async function deleteClient(id: number) {
     if (!confirm("Bu müşteriyi silmek istiyor musunuz?")) return;
