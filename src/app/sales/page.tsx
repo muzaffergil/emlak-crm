@@ -100,7 +100,13 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
   const date = new Date(sale.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   const location = [p.neighborhood, p.district, p.city].filter(Boolean).join(", ");
   const waPhone = (phone: string) => phone.replace(/\D/g, "").replace(/^0/, "90");
-  const [commRate, setCommRate] = useState(2);
+  const [commRate, setCommRate] = useState(() =>
+    Number(typeof window !== "undefined" ? (localStorage.getItem("emlak_commission_rate") ?? "2") : "2") || 2
+  );
+  function updateCommRate(val: number) {
+    setCommRate(val);
+    localStorage.setItem("emlak_commission_rate", String(val));
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -171,7 +177,7 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
                 <input
                   type="number" min={0} max={10} step={0.5}
                   value={commRate}
-                  onChange={e => setCommRate(Number(e.target.value))}
+                  onChange={e => updateCommRate(Number(e.target.value))}
                   className="w-16 px-2 py-1 border border-blue-200 rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-300"
                 />
                 <span className="text-xs text-slate-500">%</span>
