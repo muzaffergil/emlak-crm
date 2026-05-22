@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone, Banknote, CheckCircle2 } from "lucide-react";
+import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone, Banknote, CheckCircle2, ChevronDown } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Sale } from "@/lib/storage";
 
 function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor }: {
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [matches, setMatches] = useState(0);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openPanel, setOpenPanel] = useState<"collected" | "pending" | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -99,44 +100,135 @@ export default function DashboardPage() {
       </div>
 
       {/* Komisyon özeti */}
-      {sales.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Banknote size={16} className="text-blue-600" />
+      {sales.length > 0 && (() => {
+        const collectedSales = sales.filter(s => s.buyer_commission_paid + s.seller_commission_paid > 0);
+        const pendingSales = sales.filter(s => {
+          const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+          return total > 0 && total > s.buyer_commission_paid + s.seller_commission_paid;
+        });
+        return (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+            <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Banknote size={16} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-slate-800 text-sm">Komisyon Özeti</h2>
+                <p className="text-xs text-slate-500">{sales.length} satış üzerinden hesaplanmıştır</p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-semibold text-slate-800 text-sm">Komisyon Özeti</h2>
-              <p className="text-xs text-slate-500">{sales.length} satış üzerinden hesaplanmıştır</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+              {/* Toplam */}
+              <div className="px-6 py-5">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Toplam Kazanılan</p>
+                <p className="text-2xl font-bold text-slate-900">{totalCommission.toLocaleString("tr-TR")} ₺</p>
+                <p className="text-xs text-slate-400 mt-1">{sales.length} satıştan</p>
+              </div>
+
+              {/* Tahsil Edilen — tıklanabilir */}
+              <button
+                onClick={() => setOpenPanel(p => p === "collected" ? null : "collected")}
+                className={`px-6 py-5 text-left transition-colors w-full ${openPanel === "collected" ? "bg-emerald-50" : "bg-emerald-50/50 hover:bg-emerald-50"}`}
+              >
+                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <CheckCircle2 size={11} /> Tahsil Edilen
+                  <ChevronDown size={12} className={`ml-auto transition-transform ${openPanel === "collected" ? "rotate-180" : ""}`} />
+                </p>
+                <p className="text-2xl font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
+                <p className="text-xs text-emerald-600 mt-1">{collectedSales.length} satış · detay için tıkla</p>
+              </button>
+
+              {/* Bekleyen — tıklanabilir */}
+              <button
+                onClick={() => setOpenPanel(p => p === "pending" ? null : "pending")}
+                className={`px-6 py-5 text-left transition-colors w-full ${openPanel === "pending" ? (pendingCommission > 0 ? "bg-orange-100/60" : "bg-slate-50") : (pendingCommission > 0 ? "bg-orange-50/50 hover:bg-orange-100/60" : "hover:bg-slate-50")}`}
+              >
+                <p className={`text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
+                  Bekleyen
+                  <ChevronDown size={12} className={`ml-auto transition-transform ${openPanel === "pending" ? "rotate-180" : ""}`} />
+                </p>
+                <p className={`text-2xl font-bold ${pendingCommission > 0 ? "text-orange-700" : "text-slate-300"}`}>
+                  {pendingCommission.toLocaleString("tr-TR")} ₺
+                </p>
+                <p className={`text-xs mt-1 ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>
+                  {pendingSales.length} satış{pendingSales.length > 0 ? " · detay için tıkla" : ""}
+                </p>
+              </button>
             </div>
+
+            {/* Açılır liste — Tahsil Edilen */}
+            {openPanel === "collected" && (
+              <div className="border-t border-emerald-100">
+                {collectedSales.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">Henüz tahsilat yok.</p>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {collectedSales.map(s => {
+                      const bPaid = s.buyer_commission_paid;
+                      const sPaid = s.seller_commission_paid;
+                      return (
+                        <div key={s.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
+                          <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2 size={13} className="text-emerald-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{s.buyer_name}</p>
+                            <div className="flex gap-3 mt-1 text-xs">
+                              {bPaid > 0 && <span className="text-emerald-700 font-medium">Alıcıdan: {bPaid.toLocaleString("tr-TR")} ₺</span>}
+                              {sPaid > 0 && <span className="text-emerald-700 font-medium">Satıcıdan: {sPaid.toLocaleString("tr-TR")} ₺</span>}
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-emerald-700 flex-shrink-0">
+                            {(bPaid + sPaid).toLocaleString("tr-TR")} ₺
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Açılır liste — Bekleyen */}
+            {openPanel === "pending" && (
+              <div className="border-t border-orange-100">
+                {pendingSales.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">Bekleyen komisyon yok.</p>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {pendingSales.map(s => {
+                      const bTotal = s.buyer_commission ?? 0;
+                      const sTotal = s.seller_commission ?? 0;
+                      const bPending = Math.max(0, bTotal - s.buyer_commission_paid);
+                      const sPending = Math.max(0, sTotal - s.seller_commission_paid);
+                      return (
+                        <div key={s.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
+                          <div className="w-7 h-7 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Clock size={13} className="text-orange-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{s.buyer_name}</p>
+                            <div className="flex gap-3 mt-1 text-xs">
+                              {bPending > 0 && <span className="text-orange-600 font-medium">Alıcıdan: {bPending.toLocaleString("tr-TR")} ₺</span>}
+                              {sPending > 0 && <span className="text-orange-600 font-medium">Satıcıdan: {sPending.toLocaleString("tr-TR")} ₺</span>}
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-orange-600 flex-shrink-0">
+                            {(bPending + sPending).toLocaleString("tr-TR")} ₺
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-            <div className="px-6 py-5">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Toplam Kazanılan</p>
-              <p className="text-2xl font-bold text-slate-900">{totalCommission.toLocaleString("tr-TR")} ₺</p>
-              <p className="text-xs text-slate-400 mt-1">{sales.length} satıştan</p>
-            </div>
-            <div className="px-6 py-5 bg-emerald-50/50">
-              <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <CheckCircle2 size={11} /> Tahsil Edilen
-              </p>
-              <p className="text-2xl font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
-              <p className="text-xs text-emerald-600 mt-1">{sales.filter(s => s.buyer_commission_paid + s.seller_commission_paid > 0).length} satış</p>
-            </div>
-            <div className={`px-6 py-5 ${pendingCommission > 0 ? "bg-orange-50/50" : ""}`}>
-              <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
-                Bekleyen
-              </p>
-              <p className={`text-2xl font-bold ${pendingCommission > 0 ? "text-orange-700" : "text-slate-300"}`}>
-                {pendingCommission.toLocaleString("tr-TR")} ₺
-              </p>
-              <p className={`text-xs mt-1 ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>
-                {sales.filter(s => (s.buyer_commission ?? 0) + (s.seller_commission ?? 0) > s.buyer_commission_paid + s.seller_commission_paid).length} satış
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Son satışlar */}
