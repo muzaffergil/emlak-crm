@@ -101,11 +101,16 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
   const date = new Date(sale.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   const location = [p.neighborhood, p.district, p.city].filter(Boolean).join(", ");
   const waPhone = (phone: string) => phone.replace(/\D/g, "").replace(/^0/, "90");
-  const commRate = sale.commission_rate ?? (Number(typeof window !== "undefined" ? (localStorage.getItem("emlak_commission_rate") ?? "2") : "2") || 2);
-  const [commRateEdit, setCommRateEdit] = useState(commRate);
-  function updateCommRate(val: number) {
-    setCommRateEdit(val);
-    localStorage.setItem("emlak_commission_rate", String(val));
+  const [buyerComm, setBuyerComm] = useState(sale.buyer_commission != null ? String(sale.buyer_commission) : "");
+  const [sellerComm, setSellerComm] = useState(sale.seller_commission != null ? String(sale.seller_commission) : "");
+  const [commSaving, setCommSaving] = useState(false);
+
+  async function saveComm() {
+    setCommSaving(true);
+    const buyer = buyerComm ? Number(buyerComm) : undefined;
+    const seller = sellerComm ? Number(sellerComm) : undefined;
+    await saleStore.update(sale.id, { buyer_commission: buyer, seller_commission: seller });
+    setCommSaving(false);
   }
 
   return (
@@ -169,10 +174,9 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
             </div>
           )}
 
-          {p.price && (
-            <div className={`border rounded-xl p-3 space-y-2 ${sale.commission_collected ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-100"}`}>
+          <div className={`border rounded-xl p-4 space-y-3 ${sale.commission_collected ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-100"}`}>
               <div className="flex items-center justify-between">
-                <p className={`text-xs font-semibold uppercase ${sale.commission_collected ? "text-green-700" : "text-blue-700"}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wide ${sale.commission_collected ? "text-green-700" : "text-blue-700"}`}>
                   Komisyon {sale.commission_collected ? "— Tahsil Edildi ✓" : ""}
                 </p>
                 <button
@@ -186,21 +190,41 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
                   {sale.commission_collected ? "Geri Al" : "Tahsil Et"}
                 </button>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Oran:</span>
-                <input
-                  type="number" min={0} max={10} step={0.5}
-                  value={commRateEdit}
-                  onChange={e => updateCommRate(Number(e.target.value))}
-                  className="w-16 px-2 py-1 border border-blue-200 rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-300"
-                />
-                <span className="text-xs text-slate-500">%</span>
-                <span className={`ml-auto text-base font-bold ${sale.commission_collected ? "text-green-800" : "text-blue-800"}`}>
-                  {Math.round(p.price * commRateEdit / 100).toLocaleString("tr-TR")} ₺
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1">Alıcıdan (₺)</label>
+                  <input
+                    type="number" min={0} step={100}
+                    value={buyerComm}
+                    onChange={e => setBuyerComm(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 border border-blue-200 bg-white rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300/50 placeholder:text-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1">Satıcıdan (₺)</label>
+                  <input
+                    type="number" min={0} step={100}
+                    value={sellerComm}
+                    onChange={e => setSellerComm(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-3 py-2 border border-blue-200 bg-white rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300/50 placeholder:text-slate-300"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className={`text-base font-bold ${sale.commission_collected ? "text-green-800" : "text-blue-800"}`}>
+                  Toplam: {((buyerComm ? Number(buyerComm) : 0) + (sellerComm ? Number(sellerComm) : 0)).toLocaleString("tr-TR")} ₺
                 </span>
+                <button
+                  onClick={saveComm}
+                  disabled={commSaving}
+                  className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.97] disabled:opacity-50 text-white rounded-lg font-medium transition-all"
+                >
+                  {commSaving ? "Kaydediliyor…" : "Kaydet"}
+                </button>
               </div>
             </div>
-          )}
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 space-y-2">
             <p className="text-xs font-semibold text-amber-700 uppercase">Alıcı</p>
@@ -332,7 +356,7 @@ export default function SalesPage() {
                       <BadgeCheck size={11} /> {date}
                     </span>
                     {sale.commission_collected && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>
                     )}
                   </div>
                   <button

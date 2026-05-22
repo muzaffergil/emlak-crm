@@ -49,15 +49,8 @@ export default function DashboardPage() {
   const now = Date.now();
   const stale = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
   const totalSaleValue = sales.reduce((sum, s) => sum + (s.property_data.price ?? 0), 0);
-  const totalCommission = sales.reduce((sum, s) => {
-    const rate = s.commission_rate ?? 2;
-    return sum + Math.round((s.property_data.price ?? 0) * rate / 100);
-  }, 0);
-  const collectedCommission = sales.reduce((sum, s) => {
-    if (!s.commission_collected) return sum;
-    const rate = s.commission_rate ?? 2;
-    return sum + Math.round((s.property_data.price ?? 0) * rate / 100);
-  }, 0);
+  const totalCommission = sales.reduce((sum, s) => sum + (s.buyer_commission ?? 0) + (s.seller_commission ?? 0), 0);
+  const collectedCommission = sales.filter(s => s.commission_collected).reduce((sum, s) => sum + (s.buyer_commission ?? 0) + (s.seller_commission ?? 0), 0);
   const pendingCommission = totalCommission - collectedCommission;
   const recentSales = sales.slice(0, 5);
 

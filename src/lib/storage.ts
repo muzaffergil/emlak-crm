@@ -278,7 +278,8 @@ export interface Sale {
   buyer_phone?: string;
   buyer_id?: number;
   sold_at: string;
-  commission_rate?: number;
+  buyer_commission?: number;
+  seller_commission?: number;
   commission_collected: boolean;
   created_at: string;
 }
@@ -292,7 +293,8 @@ function toSale(r: any): Sale {
     buyer_phone: r.buyer_phone ?? undefined,
     buyer_id: r.buyer_id != null ? Number(r.buyer_id) : undefined,
     sold_at: r.sold_at,
-    commission_rate: r.commission_rate != null ? Number(r.commission_rate) : undefined,
+    buyer_commission: r.buyer_commission != null ? Number(r.buyer_commission) : undefined,
+    seller_commission: r.seller_commission != null ? Number(r.seller_commission) : undefined,
     commission_collected: r.commission_collected ?? false,
     created_at: r.created_at,
   };
@@ -308,7 +310,7 @@ export const saleStore = {
     return (data ?? []).map(toSale);
   },
 
-  async add(payload: { property_data: Property; buyer_name: string; buyer_phone?: string; buyer_id?: number; commission_rate?: number }): Promise<Sale> {
+  async add(payload: { property_data: Property; buyer_name: string; buyer_phone?: string; buyer_id?: number }): Promise<Sale> {
     const { data: row, error } = await supabase
       .from("sales")
       .insert([payload])
@@ -318,7 +320,7 @@ export const saleStore = {
     return toSale(row);
   },
 
-  async update(id: number, payload: { property_data?: Property; buyer_name?: string; buyer_phone?: string; sold_at?: string; commission_rate?: number; commission_collected?: boolean }): Promise<void> {
+  async update(id: number, payload: { property_data?: Property; buyer_name?: string; buyer_phone?: string; sold_at?: string; buyer_commission?: number; seller_commission?: number; commission_collected?: boolean }): Promise<void> {
     const { error } = await supabase.from("sales").update(payload).eq("id", id);
     if (error) throw error;
   },

@@ -504,8 +504,7 @@ function SaleModal({ property, onClose, onConfirm }: {
         buyerId = b.id;
       }
       if (!buyerName) return;
-      const savedRate = Number(localStorage.getItem("emlak_commission_rate") ?? "2") || 2;
-      await saleStore.add({ property_data: property, buyer_name: buyerName, buyer_phone: buyerPhone, buyer_id: buyerId, commission_rate: savedRate });
+      await saleStore.add({ property_data: property, buyer_name: buyerName, buyer_phone: buyerPhone, buyer_id: buyerId });
       await matchStore.deleteByProperty(property.id);
       await propertyStore.delete(property.id);
       onConfirm(property.id);
