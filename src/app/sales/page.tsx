@@ -89,22 +89,22 @@ function EditSaleModal({ sale, onClose, onSaved }: {
 }
 
 // ── Detay Modalı ──────────────────────────────────────────────────────────────
-function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
+function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggle }: {
   sale: Sale;
   onClose: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onReturn: () => void;
+  onCollectedToggle: (sale: Sale) => void;
 }) {
   const p = sale.property_data;
   const date = new Date(sale.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   const location = [p.neighborhood, p.district, p.city].filter(Boolean).join(", ");
   const waPhone = (phone: string) => phone.replace(/\D/g, "").replace(/^0/, "90");
-  const [commRate, setCommRate] = useState(() =>
-    Number(typeof window !== "undefined" ? (localStorage.getItem("emlak_commission_rate") ?? "2") : "2") || 2
-  );
+  const commRate = sale.commission_rate ?? (Number(typeof window !== "undefined" ? (localStorage.getItem("emlak_commission_rate") ?? "2") : "2") || 2);
+  const [commRateEdit, setCommRateEdit] = useState(commRate);
   function updateCommRate(val: number) {
-    setCommRate(val);
+    setCommRateEdit(val);
     localStorage.setItem("emlak_commission_rate", String(val));
   }
 
@@ -170,19 +170,33 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
           )}
 
           {p.price && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs font-semibold text-blue-700 uppercase mb-2">Komisyon Hesaplayıcı</p>
+            <div className={`border rounded-xl p-3 space-y-2 ${sale.commission_collected ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-100"}`}>
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-semibold uppercase ${sale.commission_collected ? "text-green-700" : "text-blue-700"}`}>
+                  Komisyon {sale.commission_collected ? "— Tahsil Edildi ✓" : ""}
+                </p>
+                <button
+                  onClick={() => onCollectedToggle(sale)}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    sale.commission_collected
+                      ? "bg-green-200 text-green-800 hover:bg-green-300"
+                      : "bg-white border border-blue-200 text-blue-700 hover:bg-blue-100"
+                  }`}
+                >
+                  {sale.commission_collected ? "Geri Al" : "Tahsil Et"}
+                </button>
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Oran:</span>
                 <input
                   type="number" min={0} max={10} step={0.5}
-                  value={commRate}
+                  value={commRateEdit}
                   onChange={e => updateCommRate(Number(e.target.value))}
                   className="w-16 px-2 py-1 border border-blue-200 rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-300"
                 />
                 <span className="text-xs text-slate-500">%</span>
-                <span className="ml-auto text-sm font-bold text-blue-800">
-                  {Math.round(p.price * commRate / 100).toLocaleString("tr-TR")} ₺
+                <span className={`ml-auto text-base font-bold ${sale.commission_collected ? "text-green-800" : "text-blue-800"}`}>
+                  {Math.round(p.price * commRateEdit / 100).toLocaleString("tr-TR")} ₺
                 </span>
               </div>
             </div>
@@ -269,6 +283,13 @@ export default function SalesPage() {
     setEditing(false);
   }
 
+  async function handleCollectedToggle(sale: Sale) {
+    const updated = { ...sale, commission_collected: !sale.commission_collected };
+    await saleStore.update(sale.id, { commission_collected: updated.commission_collected });
+    setSales(prev => prev.map(s => s.id === sale.id ? updated : s));
+    setSelected(updated);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -306,9 +327,14 @@ export default function SalesPage() {
                 onClick={() => { setSelected(sale); setEditing(false); }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
-                    <BadgeCheck size={11} /> {date}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
+                      <BadgeCheck size={11} /> {date}
+                    </span>
+                    {sale.commission_collected && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>
+                    )}
+                  </div>
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmDelete(sale); }}
                     className="text-slate-300 hover:text-red-500 transition-colors"
@@ -360,6 +386,7 @@ export default function SalesPage() {
           onDelete={() => { setSelected(null); setConfirmDelete(selected); }}
           onEdit={() => setEditing(true)}
           onReturn={() => { setSelected(null); setConfirmReturn(selected); }}
+          onCollectedToggle={handleCollectedToggle}
         />
       )}
 

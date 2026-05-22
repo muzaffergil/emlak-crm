@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone } from "lucide-react";
+import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone, Banknote, CheckCircle2 } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Sale } from "@/lib/storage";
 
 function StatCard({ label, value, sub, icon: Icon, color }: {
@@ -49,6 +49,16 @@ export default function DashboardPage() {
   const now = Date.now();
   const stale = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
   const totalSaleValue = sales.reduce((sum, s) => sum + (s.property_data.price ?? 0), 0);
+  const totalCommission = sales.reduce((sum, s) => {
+    const rate = s.commission_rate ?? 2;
+    return sum + Math.round((s.property_data.price ?? 0) * rate / 100);
+  }, 0);
+  const collectedCommission = sales.reduce((sum, s) => {
+    if (!s.commission_collected) return sum;
+    const rate = s.commission_rate ?? 2;
+    return sum + Math.round((s.property_data.price ?? 0) * rate / 100);
+  }, 0);
+  const pendingCommission = totalCommission - collectedCommission;
   const recentSales = sales.slice(0, 5);
 
   if (loading) {
@@ -111,6 +121,38 @@ export default function DashboardPage() {
           color={stale.length > 0 ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-400"}
         />
       </div>
+
+      {/* Komisyon özeti */}
+      {sales.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <h2 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
+            <Banknote size={16} className="text-blue-600" /> Komisyon Özeti
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500 mb-1">Toplam Kazanılan</p>
+              <p className="text-xl font-bold text-slate-800">{totalCommission.toLocaleString("tr-TR")} ₺</p>
+              <p className="text-xs text-slate-400 mt-0.5">{sales.length} satıştan</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-4">
+              <p className="text-xs text-green-700 font-medium mb-1 flex items-center gap-1"><CheckCircle2 size={11} /> Tahsil Edilen</p>
+              <p className="text-xl font-bold text-green-800">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
+              <p className="text-xs text-green-600 mt-0.5">
+                {sales.filter(s => s.commission_collected).length} satış
+              </p>
+            </div>
+            <div className={`rounded-xl p-4 ${pendingCommission > 0 ? "bg-orange-50" : "bg-slate-50"}`}>
+              <p className={`text-xs font-medium mb-1 ${pendingCommission > 0 ? "text-orange-700" : "text-slate-500"}`}>Bekleyen</p>
+              <p className={`text-xl font-bold ${pendingCommission > 0 ? "text-orange-800" : "text-slate-400"}`}>
+                {pendingCommission.toLocaleString("tr-TR")} ₺
+              </p>
+              <p className={`text-xs mt-0.5 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
+                {sales.filter(s => !s.commission_collected).length} satış
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Son satışlar */}
