@@ -236,13 +236,13 @@ function PropertyModal({
         </div>
 
         {/* Footer: WhatsApp + Sahibi Ara + Kapat */}
-        <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-slate-50/60 rounded-b-2xl">
           {clientPhone && (
             <a
               href={`https://wa.me/${clientPhone.replace(/\D/g, "").replace(/^0/, "90")}?text=${encodeURIComponent(buildClientMessage(property, clientName, score, reasons))}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 active:scale-[0.98] text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
             >
               <MessageCircle size={14} /> Müşteriye Yaz
             </a>
@@ -250,12 +250,12 @@ function PropertyModal({
           {property.owner_phone && (
             <a
               href={`tel:${property.owner_phone}`}
-              className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-100 active:scale-[0.98] transition-all"
             >
               <Phone size={14} /> Sahibi Ara
             </a>
           )}
-          <button onClick={onClose} className="ml-auto px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+          <button onClick={onClose} className="ml-auto px-4 py-2 text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
             Kapat
           </button>
         </div>
@@ -392,77 +392,86 @@ export default function MatchesPage() {
   }, {});
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Zap size={24} className="text-amber-500" /> Eşleşmeler
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">{matches.length} toplam eşleşme</p>
+    <div className="space-y-6">
+      <div className="border-b border-slate-200 pb-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+            <Zap size={20} className="text-violet-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Eşleşmeler</h1>
+            <p className="text-slate-500 text-sm mt-0.5">{matches.length} toplam eşleşme</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          {lastRun && <span className="text-sm text-green-600">{lastRun}</span>}
+          {lastRun && <span className="text-sm text-emerald-600 font-medium">{lastRun}</span>}
           <button onClick={() => runMatch()} disabled={running}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50">
-            <RefreshCw size={16} className={running ? "animate-spin" : ""} />
+            className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-amber-200 transition-all flex items-center gap-2 disabled:opacity-50">
+            <RefreshCw size={15} className={running ? "animate-spin" : ""} />
             {running ? "Eşleştiriliyor..." : "Eşleştir"}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
           {error}
         </div>
       )}
 
       {matches.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
-          <Zap size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="mb-2">Henüz eşleşme yok.</p>
+        <div className="text-center py-20 text-slate-400">
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Zap size={32} className="text-slate-300" />
+          </div>
+          <p className="font-medium text-slate-500 mb-1">Henüz eşleşme yok.</p>
           <p className="text-sm">Müşteri ve portföy ekledikten sonra &quot;Eşleştir&quot; butonuna tıklayın.</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {Object.entries(grouped).map(([clientName, clientMatches]) => (
-            <div key={clientName} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-slate-800">{clientName}</h3>
-                  {clientMatches[0]?.client_phone && (
-                    <p className="text-xs text-slate-500 flex items-center gap-1"><Phone size={10} />{clientMatches[0].client_phone}</p>
-                  )}
+            <div key={clientName} className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+              <div className="bg-slate-50/60 px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-violet-700 font-bold text-sm">{clientName.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-sm">{clientName}</h3>
+                    {clientMatches[0]?.client_phone && (
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><Phone size={10} />{clientMatches[0].client_phone}</p>
+                    )}
+                  </div>
                 </div>
-                <span className="text-xs text-slate-500">{clientMatches.length} eşleşme</span>
+                <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{clientMatches.length} eşleşme</span>
               </div>
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-50">
                 {clientMatches.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setSelected(m)}
-                    className="w-full px-4 py-3 flex items-start gap-3 hover:bg-amber-50 transition-colors text-left"
+                    className="w-full px-5 py-3.5 flex items-start gap-3 hover:bg-amber-50/50 transition-colors text-left group"
                   >
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-bold flex-shrink-0 ${scoreColor(m.score)}`}>
-                      <Star size={12} /> {m.score}
+                    <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm font-bold flex-shrink-0 ${scoreColor(m.score)}`}>
+                      <Star size={11} /> {m.score}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-800 text-sm">{m.property_title}</p>
-                      <p className="text-xs text-amber-600 font-medium">{m.client_name}{m.client_phone && ` · ${m.client_phone}`}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
-                        <span className="flex items-center gap-1"><MapPin size={11} />{[m.property_district, m.property_city].filter(Boolean).join(", ")}</span>
-                        {m.price && <span className="flex items-center gap-1"><TrendingUp size={11} />{m.price.toLocaleString("tr-TR")} ₺{m.price_type === "kira" ? "/ay" : ""}</span>}
+                      <p className="font-semibold text-slate-800 text-sm">{m.property_title}</p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                        <span className="flex items-center gap-1"><MapPin size={10} />{[m.property_district, m.property_city].filter(Boolean).join(", ")}</span>
+                        {m.price && <span className="flex items-center gap-1 font-medium text-slate-600"><TrendingUp size={10} />{m.price.toLocaleString("tr-TR")} ₺{m.price_type === "kira" ? "/ay" : ""}</span>}
                         {m.size && <span>{m.size} m²</span>}
                         {m.rooms && <span>{m.rooms}</span>}
                       </div>
                       {m.reasons.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1 mt-1.5">
                           {m.reasons.map((r, i) => (
-                            <span key={i} className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded">{r}</span>
+                            <span key={i} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{r}</span>
                           ))}
                         </div>
                       )}
                     </div>
-                    <span className="text-slate-300 text-xs self-center flex-shrink-0">›</span>
+                    <span className="text-slate-300 group-hover:text-slate-400 transition-colors self-center flex-shrink-0 text-base">›</span>
                   </button>
                 ))}
               </div>

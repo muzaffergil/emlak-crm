@@ -572,23 +572,26 @@ export default function ClientsPage() {
           onCancel={() => setConfirmDeleteId(null)}
         />
       )}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Users size={24} className="text-amber-500" /> Müşteriler
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Users size={16} className="text-blue-600" />
+            </div>
+            Müşteriler
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             {loading ? "Yükleniyor..." : `${clients.length} müşteri`}
           </p>
         </div>
         <button onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(!showForm); }}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
-          <Plus size={16} /> Müşteri Ekle
+          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
+          <Plus size={15} /> Müşteri Ekle
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 mb-6 shadow-sm ring-1 ring-black/[0.03]">
           <h2 className="font-semibold text-slate-800 mb-4">{editingId != null ? "Müşteriyi Düzenle" : "Yeni Müşteri / İhtiyaç"}</h2>
           <form onSubmit={saveClient} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -673,9 +676,9 @@ export default function ClientsPage() {
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
             </div>
 
-            <div className="flex gap-2 justify-end">
-              <button type="button" onClick={cancelForm} className="px-4 py-2 border border-slate-200 rounded-lg text-sm hover:bg-slate-50">İptal</button>
-              <button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">
+            <div className="flex gap-2 justify-end pt-2">
+              <button type="button" onClick={cancelForm} className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">İptal</button>
+              <button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-60">
                 {saving ? "Kaydediliyor..." : editingId != null ? "Güncelle" : "Kaydet"}
               </button>
             </div>
@@ -700,16 +703,16 @@ export default function ClientsPage() {
               const group = clients.filter((c) => ["aliyor", "kiraciyor"].includes(c.intent));
               return (
                 <>
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg border mb-3 text-green-700 bg-green-50 border-green-200">
+                  <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm">
                     <span className="font-semibold text-sm">Alıcılar</span>
-                    <span className="text-xs font-medium">{group.length} kişi</span>
+                    <span className="text-xs font-semibold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">{group.length} kişi</span>
                   </div>
                   {group.length === 0 ? (
                     <p className="text-xs text-slate-400 text-center py-6">Kayıt yok</p>
                   ) : (
                     <div className="space-y-3">
                       {group.map((c) => (
-                        <div key={c.id} onClick={() => setViewingClient(c)} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow">
+                        <div key={c.id} onClick={() => setViewingClient(c)} className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -749,9 +752,9 @@ export default function ClientsPage() {
 
           {/* Satıcılar kolonu — sadece portföy sahiplerinden türetilir */}
           <div>
-            <div className="flex items-center justify-between px-3 py-2 rounded-lg border mb-3 text-blue-700 bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-blue-700 bg-blue-50 border-blue-200 shadow-sm">
               <span className="font-semibold text-sm">Satıcılar</span>
-              <span className="text-xs font-medium">{derivedSellers.length} kişi</span>
+              <span className="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{derivedSellers.length} kişi</span>
             </div>
             {derivedSellers.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">
@@ -763,7 +766,7 @@ export default function ClientsPage() {
                   <div
                     key={`derived-${s.name}`}
                     onClick={() => setViewingSeller(s)}
-                    className="bg-white rounded-xl border border-dashed border-blue-200 shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    className="bg-white rounded-2xl border border-dashed border-blue-200 shadow-sm ring-1 ring-blue-50 p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-slate-800">{s.name}</h3>

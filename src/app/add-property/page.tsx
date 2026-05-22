@@ -31,8 +31,8 @@ const EMPTY_FORM = {
   owner_name: "", owner_phone: "",
 };
 
-const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300";
-const labelCls = "text-xs font-semibold text-slate-500 block mb-2";
+const inputCls = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400";
+const labelCls = "text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5";
 
 function PillGroup({ label, options, value, onChange }: {
   label: string;
@@ -206,21 +206,24 @@ export default function AddPropertyPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <ClipboardList size={24} className="text-amber-500" /> Portföy Ekle
+      <div className="mb-6 border-b border-slate-200 pb-5">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+            <ClipboardList size={16} className="text-amber-600" />
+          </div>
+          Portföy Ekle
         </h1>
       </div>
 
       {/* Sekme */}
       <div className="flex gap-1 mb-5 bg-slate-100 p-1 rounded-xl w-fit">
         <button type="button" onClick={() => setTab("form")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "form" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-          <ClipboardList size={15} /> Form ile Ekle
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "form" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+          <ClipboardList size={14} /> Form ile Ekle
         </button>
         <button type="button" onClick={() => setTab("text")}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === "text" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-          <MessageSquare size={15} /> Metinden Ekle
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${tab === "text" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+          <MessageSquare size={14} /> Metinden Ekle
         </button>
       </div>
 

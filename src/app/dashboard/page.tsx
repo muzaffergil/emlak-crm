@@ -3,19 +3,19 @@ import { useEffect, useState } from "react";
 import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone, Banknote, CheckCircle2 } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, type Property, type Sale } from "@/lib/storage";
 
-function StatCard({ label, value, sub, icon: Icon, color }: {
+function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor }: {
   label: string; value: string | number; sub?: string;
-  icon: React.ElementType; color: string;
+  icon: React.ElementType; iconBg: string; iconColor: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-        <Icon size={22} />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+        <Icon size={20} className={iconColor} />
       </div>
-      <div>
-        <p className="text-xs text-slate-500 font-medium">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 leading-tight">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-2xl font-bold text-slate-900 leading-none">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-1.5">{sub}</p>}
       </div>
     </div>
   );
@@ -63,90 +63,81 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-20 text-slate-400">
-        <p>Yükleniyor...</p>
+      <div className="flex items-center justify-center py-24 text-slate-400">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-2 border-slate-200 border-t-amber-500 rounded-full animate-spin mx-auto" />
+          <p className="text-sm">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Genel Bakış</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Tüm sistemin özeti</p>
+    <div className="space-y-8">
+      {/* Başlık */}
+      <div className="border-b border-slate-200 pb-5">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
+        <p className="text-slate-500 text-sm mt-1">EstateIQ sisteminin özeti</p>
       </div>
 
       {/* İstatistik kartları */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard
-          label="Aktif Portföy"
-          value={active.length}
-          sub={`${properties.length} toplam`}
-          icon={Building2}
-          color="bg-amber-100 text-amber-700"
-        />
-        <StatCard
-          label="Toplam Portföy Değeri"
+        <StatCard label="Aktif Portföy" value={active.length}
+          sub={`${properties.length} toplam portföy`}
+          icon={Building2} iconBg="bg-amber-50" iconColor="text-amber-600" />
+        <StatCard label="Portföy Değeri"
           value={totalValue > 0 ? `${(totalValue / 1_000_000).toFixed(1)}M ₺` : "—"}
-          sub="aktif müsait portföyler"
-          icon={TrendingUp}
-          color="bg-green-100 text-green-700"
-        />
-        <StatCard
-          label="Alıcı"
-          value={buyers}
-          sub={`${sellers} satıcı`}
-          icon={Users}
-          color="bg-blue-100 text-blue-700"
-        />
-        <StatCard
-          label="Eşleşme"
-          value={matches}
-          sub="toplam aktif eşleşme"
-          icon={Zap}
-          color="bg-purple-100 text-purple-700"
-        />
-        <StatCard
-          label="Gerçekleşen Satış"
-          value={sales.length}
-          sub={totalSaleValue > 0 ? `${(totalSaleValue / 1_000_000).toFixed(1)}M ₺ toplam` : undefined}
-          icon={BadgeCheck}
-          color="bg-slate-100 text-slate-700"
-        />
-        <StatCard
-          label="Bekleyen Portföy (30g+)"
-          value={stale.length}
+          sub="müsait portföylerin toplamı"
+          icon={TrendingUp} iconBg="bg-emerald-50" iconColor="text-emerald-600" />
+        <StatCard label="Alıcılar" value={buyers}
+          sub={`${sellers} portföy sahibi`}
+          icon={Users} iconBg="bg-blue-50" iconColor="text-blue-600" />
+        <StatCard label="Aktif Eşleşme" value={matches}
+          sub="toplam eşleşme sayısı"
+          icon={Zap} iconBg="bg-violet-50" iconColor="text-violet-600" />
+        <StatCard label="Gerçekleşen Satış" value={sales.length}
+          sub={totalSaleValue > 0 ? `${(totalSaleValue / 1_000_000).toFixed(1)}M ₺ ciro` : undefined}
+          icon={BadgeCheck} iconBg="bg-slate-100" iconColor="text-slate-600" />
+        <StatCard label="30+ Gün Bekleyen" value={stale.length}
           sub="fiyat güncellemesi gerekebilir"
           icon={AlertTriangle}
-          color={stale.length > 0 ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-400"}
-        />
+          iconBg={stale.length > 0 ? "bg-orange-50" : "bg-slate-100"}
+          iconColor={stale.length > 0 ? "text-orange-600" : "text-slate-400"} />
       </div>
 
       {/* Komisyon özeti */}
       {sales.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <h2 className="font-semibold text-slate-800 flex items-center gap-2 mb-4">
-            <Banknote size={16} className="text-blue-600" /> Komisyon Özeti
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-xs text-slate-500 mb-1">Toplam Kazanılan</p>
-              <p className="text-xl font-bold text-slate-800">{totalCommission.toLocaleString("tr-TR")} ₺</p>
-              <p className="text-xs text-slate-400 mt-0.5">{sales.length} satıştan</p>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Banknote size={16} className="text-blue-600" />
             </div>
-            <div className="bg-green-50 rounded-xl p-4">
-              <p className="text-xs text-green-700 font-medium mb-1 flex items-center gap-1"><CheckCircle2 size={11} /> Tahsil Edilen</p>
-              <p className="text-xl font-bold text-green-800">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
-              <p className="text-xs text-green-600 mt-0.5">
-                {sales.filter(s => s.commission_collected).length} satış
+            <div>
+              <h2 className="font-semibold text-slate-800 text-sm">Komisyon Özeti</h2>
+              <p className="text-xs text-slate-500">{sales.length} satış üzerinden hesaplanmıştır</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            <div className="px-6 py-5">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Toplam Kazanılan</p>
+              <p className="text-2xl font-bold text-slate-900">{totalCommission.toLocaleString("tr-TR")} ₺</p>
+              <p className="text-xs text-slate-400 mt-1">{sales.length} satıştan</p>
+            </div>
+            <div className="px-6 py-5 bg-emerald-50/50">
+              <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <CheckCircle2 size={11} /> Tahsil Edilen
               </p>
+              <p className="text-2xl font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
+              <p className="text-xs text-emerald-600 mt-1">{sales.filter(s => s.commission_collected).length} satış</p>
             </div>
-            <div className={`rounded-xl p-4 ${pendingCommission > 0 ? "bg-orange-50" : "bg-slate-50"}`}>
-              <p className={`text-xs font-medium mb-1 ${pendingCommission > 0 ? "text-orange-700" : "text-slate-500"}`}>Bekleyen</p>
-              <p className={`text-xl font-bold ${pendingCommission > 0 ? "text-orange-800" : "text-slate-400"}`}>
+            <div className={`px-6 py-5 ${pendingCommission > 0 ? "bg-orange-50/50" : ""}`}>
+              <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
+                Bekleyen
+              </p>
+              <p className={`text-2xl font-bold ${pendingCommission > 0 ? "text-orange-700" : "text-slate-300"}`}>
                 {pendingCommission.toLocaleString("tr-TR")} ₺
               </p>
-              <p className={`text-xs mt-0.5 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
+              <p className={`text-xs mt-1 ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>
                 {sales.filter(s => !s.commission_collected).length} satış
               </p>
             </div>
@@ -156,34 +147,39 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Son satışlar */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-              <BadgeCheck size={16} className="text-green-600" /> Son Satışlar
-            </h2>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <BadgeCheck size={14} className="text-emerald-600" />
+            </div>
+            <h2 className="font-semibold text-slate-800 text-sm">Son Satışlar</h2>
           </div>
           {recentSales.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">Henüz satış yok.</p>
+            <div className="py-12 text-center">
+              <BadgeCheck size={32} className="mx-auto text-slate-200 mb-2" />
+              <p className="text-sm text-slate-400">Henüz satış yok.</p>
+            </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-50">
               {recentSales.map(s => (
-                <div key={s.id} className="px-5 py-3 flex items-start gap-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <BadgeCheck size={14} className="text-green-700" />
+                <div key={s.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <BadgeCheck size={14} className="text-emerald-700" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">{s.property_data.title}</p>
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
-                      <MapPin size={10} /> {[s.property_data.neighborhood, s.property_data.district].filter(Boolean).join(", ")}
+                    <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
+                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                      <MapPin size={10} />
+                      {[s.property_data.neighborhood, s.property_data.district].filter(Boolean).join(", ")}
                     </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs font-semibold text-green-700">
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs font-bold text-emerald-700">
                         {s.property_data.price ? `${s.property_data.price.toLocaleString("tr-TR")} ₺` : "—"}
                       </span>
                       <span className="text-xs text-slate-400">{s.buyer_name}</span>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-400 flex-shrink-0">
+                  <span className="text-xs text-slate-400 flex-shrink-0 font-medium">
                     {new Date(s.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}
                   </span>
                 </div>
@@ -193,40 +189,47 @@ export default function DashboardPage() {
         </div>
 
         {/* 30+ gün bekleyen portföyler */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Clock size={16} className="text-orange-500" /> Uzun Süre Bekleyen
-            </h2>
-            <span className="text-xs text-slate-400">30+ gün</span>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Clock size={14} className="text-orange-600" />
+              </div>
+              <h2 className="font-semibold text-slate-800 text-sm">Uzun Süre Bekleyen</h2>
+            </div>
+            <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">30+ gün</span>
           </div>
           {stale.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">Tüm portföyler güncel.</p>
+            <div className="py-12 text-center">
+              <CheckCircle2 size={32} className="mx-auto text-slate-200 mb-2" />
+              <p className="text-sm text-slate-400">Tüm portföyler güncel.</p>
+            </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-50">
               {stale.slice(0, 5).map(p => {
                 const ageDays = Math.floor((now - new Date(p.created_at).getTime()) / 86400000);
                 return (
-                  <div key={p.id} className="px-5 py-3 flex items-start gap-3">
+                  <div key={p.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
                     <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Clock size={14} className="text-orange-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{p.title}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <MapPin size={10} /> {[p.neighborhood, p.district].filter(Boolean).join(", ")}
+                      <p className="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                        <MapPin size={10} />
+                        {[p.neighborhood, p.district].filter(Boolean).join(", ")}
                       </p>
                       {p.price && (
-                        <span className="text-xs font-semibold text-slate-700">
+                        <p className="text-xs font-bold text-slate-700 mt-0.5">
                           {p.price.toLocaleString("tr-TR")} ₺
-                        </span>
+                        </p>
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-xs font-bold text-orange-600">{ageDays}g</span>
+                      <span className="text-sm font-bold text-orange-600">{ageDays}g</span>
                       {p.owner_phone && (
                         <a href={`tel:${p.owner_phone}`} onClick={e => e.stopPropagation()}
-                          className="block text-xs text-slate-400 hover:text-slate-600 mt-0.5 flex items-center gap-0.5 justify-end">
+                          className="flex items-center gap-0.5 justify-end text-xs text-slate-400 hover:text-slate-600 mt-0.5">
                           <Phone size={9} /> {p.owner_phone}
                         </a>
                       )}
@@ -235,7 +238,7 @@ export default function DashboardPage() {
                 );
               })}
               {stale.length > 5 && (
-                <p className="text-xs text-slate-400 text-center py-2">+{stale.length - 5} daha</p>
+                <p className="text-xs text-slate-400 text-center py-3 font-medium">+{stale.length - 5} daha</p>
               )}
             </div>
           )}

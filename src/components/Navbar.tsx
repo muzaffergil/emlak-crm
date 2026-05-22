@@ -26,7 +26,7 @@ async function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `emlak-yedek-${new Date().toLocaleDateString("tr-TR").replace(/\./g, "-")}.json`;
+  a.download = `estateiq-yedek-${new Date().toLocaleDateString("tr-TR").replace(/\./g, "-")}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -82,120 +82,132 @@ export default function Navbar() {
 
   return (
     <>
-    {pendingFile && (
-      <ConfirmDialog
-        message="Mevcut tüm veriler silinip yeni dosya yüklenecek. Devam edilsin mi?"
-        confirmLabel="Evet, İçe Aktar"
-        cancelLabel="Hayır, İptal"
-        danger={true}
-        onConfirm={confirmImport}
-        onCancel={() => setPendingFile(null)}
-      />
-    )}
-    <nav className="bg-white border-b border-slate-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Ana satır */}
-        <div className="flex items-center h-14">
-          <span className="font-bold text-lg text-amber-500 mr-6">EstateIQ</span>
+      {pendingFile && (
+        <ConfirmDialog
+          message="Mevcut tüm veriler silinip yeni dosya yüklenecek. Devam edilsin mi?"
+          confirmLabel="Evet, İçe Aktar"
+          cancelLabel="Hayır, İptal"
+          danger={true}
+          onConfirm={confirmImport}
+          onCancel={() => setPendingFile(null)}
+        />
+      )}
+      <nav className="sticky top-0 z-40 bg-slate-900 border-b border-white/[0.06] shadow-xl">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Ana satır */}
+          <div className="flex items-center h-15 gap-2" style={{ height: "60px" }}>
+            {/* Logo */}
+            <Link href="/dashboard" className="flex items-center gap-2.5 mr-6 flex-shrink-0 group">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <Building2 size={16} className="text-white" />
+              </div>
+              <span className="font-bold text-lg tracking-tight text-white">
+                Estate<span className="text-amber-400">IQ</span>
+              </span>
+            </Link>
 
-          {/* Masaüstü linkleri */}
-          <div className="hidden md:flex items-center gap-2">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  pathname === href
-                    ? "bg-amber-500 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Icon size={16} />
-                {label}
-              </Link>
-            ))}
-          </div>
+            {/* Masaüstü linkleri */}
+            <div className="hidden md:flex items-center gap-0.5">
+              {links.map(({ href, label, icon: Icon }) => {
+                const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                      active
+                        ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
+                        : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    <Icon size={15} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
 
-          {/* Masaüstü dışa/içe aktar */}
-          <div className="hidden md:flex items-center gap-2 ml-auto">
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-              title="Verileri dışa aktar"
-            >
-              {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              Dışa Aktar
-            </button>
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={importing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-              title="Verileri içe aktar"
-            >
-              {importing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              İçe Aktar
-            </button>
-          </div>
-
-          {/* Mobil hamburger butonu */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden ml-auto p-2 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
-            aria-label="Menü"
-          >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </div>
-
-        {/* Mobil açılır menü */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-slate-100 py-2 flex flex-col gap-1">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  pathname === href
-                    ? "bg-amber-500 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Icon size={18} />
-                {label}
-              </Link>
-            ))}
-            <div className="border-t border-slate-100 mt-1 pt-1 flex flex-col gap-1">
+            {/* Masaüstü dışa/içe aktar */}
+            <div className="hidden md:flex items-center gap-1 ml-auto">
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
               >
-                {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
                 Dışa Aktar
               </button>
               <button
-                onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
+                onClick={() => fileRef.current?.click()}
                 disabled={importing}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
               >
-                {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                 İçe Aktar
               </button>
             </div>
-          </div>
-        )}
-      </div>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".json"
-        className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) handleImport(e.target.files[0]); }}
-      />
-    </nav>
+            {/* Mobil hamburger */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden ml-auto p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
+              aria-label="Menü"
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+
+          {/* Mobil açılır menü */}
+          {menuOpen && (
+            <div className="md:hidden border-t border-white/[0.06] py-2 flex flex-col gap-0.5">
+              {links.map(({ href, label, icon: Icon }) => {
+                const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      active
+                        ? "bg-amber-500 text-white"
+                        : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    <Icon size={17} />
+                    {label}
+                  </Link>
+                );
+              })}
+              <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
+                <button
+                  onClick={handleExport}
+                  disabled={exporting}
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                >
+                  {exporting ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+                  Dışa Aktar
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
+                  disabled={importing}
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                >
+                  {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+                  İçe Aktar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={(e) => { if (e.target.files?.[0]) handleImport(e.target.files[0]); }}
+        />
+      </nav>
     </>
   );
 }

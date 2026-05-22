@@ -82,15 +82,18 @@ function EditModal({ property, onClose, onSave }: {
     }
   }
 
-  const inputCls = "w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300";
-  const labelCls = "text-xs font-semibold text-slate-500 block mb-1";
+  const inputCls = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400";
+  const labelCls = "text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">Portföy Düzenle <span className="text-slate-400 font-normal text-sm">#{property.id}</span></h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
+          <div>
+            <h2 className="font-bold text-slate-900">Portföy Düzenle</h2>
+            <p className="text-xs text-slate-400 mt-0.5">#{property.id}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
         </div>
 
         <div className="overflow-y-auto px-5 py-4 space-y-4">
@@ -188,9 +191,9 @@ function EditModal({ property, onClose, onSave }: {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">İptal</button>
-          <button onClick={handleSave} disabled={saving} className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-60">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">İptal</button>
+          <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-60">
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </button>
         </div>
@@ -299,21 +302,23 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
   const hasDetails = property.size || property.rooms || property.floor != null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Başlık */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-slate-800 text-base leading-tight">{property.title}</h2>
+            <h2 className="font-bold text-slate-900 text-base leading-tight">{property.title}</h2>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full capitalize">{property.type}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+              <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">{property.type}</span>
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${st.color}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />{st.label}
+              </span>
+              <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
                 {property.price_type === "kira" ? "Kiralık" : "Satılık"}
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 ml-3 flex-shrink-0"><X size={18} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors ml-3 flex-shrink-0"><X size={18} /></button>
         </div>
 
         <div className="overflow-y-auto px-5 py-4 space-y-5">
@@ -438,13 +443,13 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between gap-2 px-5 py-4 border-t border-slate-100">
+        <div className="flex justify-between gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
           <button onClick={onDelete}
-            className="flex items-center gap-1.5 px-4 py-2 border border-red-200 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
+            className="flex items-center gap-1.5 px-4 py-2.5 border border-red-200 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
             <Trash2 size={14} /> Sil
           </button>
           <button onClick={onEdit}
-            className="flex items-center gap-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors">
+            className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-xl text-sm font-semibold transition-all shadow-sm">
             <Pencil size={14} /> Düzenle
           </button>
         </div>
@@ -852,31 +857,34 @@ export default function PortfolioPage() {
         />
       )}
       {/* Başlık */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Home size={24} className="text-amber-500" /> Portföy
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+              <Home size={16} className="text-amber-600" />
+            </div>
+            Portföy
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">
+          <p className="text-slate-500 text-sm mt-1">
             {loading ? "Yükleniyor..." : `${filtered.length} / ${properties.length} gayrimenkul`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
             onClick={() => setShowExcelModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
           >
-            <FileSpreadsheet size={15} /> Excel Şablonu
+            <FileSpreadsheet size={14} /> Excel Şablonu
           </button>
           <button
             onClick={() => excelFileRef.current?.click()}
             disabled={importLoading}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
           >
-            {importLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            {importLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
             Excel'den Aktar
           </button>
-          <a href="add-property" className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <a href="add-property" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
             + Portföy Ekle
           </a>
         </div>
@@ -904,27 +912,27 @@ export default function PortfolioPage() {
       )}
 
       {/* Arama + Filtre Aç */}
-      <div className="flex gap-2 mb-3">
-        <input type="text" placeholder="Kelime ara..." value={filters.search}
+      <div className="flex gap-2 mb-4">
+        <input type="text" placeholder="Başlık, ilçe, fiyat ara..." value={filters.search}
           onChange={e => set("search", e.target.value)}
-          className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-amber-300" />
+          className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400 bg-white shadow-sm" />
         <button onClick={() => setShowFilters(v => !v)}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${showFilters || activeCount > 1 ? "bg-amber-500 text-white border-amber-500" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-          <SlidersHorizontal size={15} />
+          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all shadow-sm ${showFilters || activeCount > 1 ? "bg-amber-500 text-white border-amber-500 shadow-amber-200" : "border-slate-200 text-slate-600 hover:bg-slate-50 bg-white"}`}>
+          <SlidersHorizontal size={14} />
           Filtrele
           {activeCount > 0 && <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${showFilters || activeCount > 1 ? "bg-white text-amber-600" : "bg-amber-500 text-white"}`}>{activeCount}</span>}
         </button>
         {activeCount > 0 && (
           <button onClick={() => setFilters({ ...EMPTY })}
-            className="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-500 hover:bg-slate-50">
-            <X size={15} />
+            className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-50 bg-white shadow-sm transition-colors">
+            <X size={14} />
           </button>
         )}
       </div>
 
       {/* Filtre Paneli */}
       {showFilters && (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 mb-4 shadow-sm space-y-4">
+        <div className="bg-white border border-slate-100 rounded-2xl p-5 mb-4 shadow-sm ring-1 ring-black/[0.03] space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FilterSelect label="Gayrimenkul Tipi" options={options.types} values={filters.types} onChange={v => set("types", v)} />
             <RadioGroup label="Satış / Kiralık" value={filters.priceType}
@@ -1006,64 +1014,71 @@ export default function PortfolioPage() {
             const shareMsg = buildShareMessage(p);
             const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
             return (
-              <div key={p.id} onClick={() => setViewing(p)} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-slate-800 text-sm leading-tight">{p.title}</h3>
-                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+              <div key={p.id} onClick={() => setViewing(p)}
+                className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-5 cursor-pointer">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{p.title}</h3>
+                  <div className="flex items-center gap-0.5 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     <a href={shareHref} target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
-                      className="text-slate-300 hover:text-green-500 transition-colors">
-                      <Share2 size={14} />
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-green-600 hover:bg-green-50 transition-colors">
+                      <Share2 size={13} />
                     </a>
-                    <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla" className="text-slate-300 hover:text-green-600 transition-colors">
-                      <CheckCircle2 size={14} />
+                    <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
+                      <CheckCircle2 size={13} />
                     </button>
-                    <button onClick={e => { e.stopPropagation(); setEditing(p); }} className="text-slate-300 hover:text-amber-500 transition-colors">
-                      <Pencil size={14} />
+                    <button onClick={e => { e.stopPropagation(); setEditing(p); }}
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-amber-500 hover:bg-amber-50 transition-colors">
+                      <Pencil size={13} />
                     </button>
-                    <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }} className="text-slate-300 hover:text-red-500 transition-colors">
-                      <Trash2 size={14} />
+                    <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
+                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                  <span className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full capitalize">{p.type}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                <div className="flex items-center gap-1.5 mb-3.5 flex-wrap">
+                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">{p.type}</span>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${st.color}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 flex-shrink-0" />{st.label}
+                  </span>
+                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
                     {p.price_type === "kira" ? "Kiralık" : "Satılık"}
                   </span>
                   {isOld && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">
                       <Clock size={9} /> {ageDays}g
                     </span>
                   )}
                 </div>
-                <div className="space-y-1 text-xs text-slate-600">
+                <div className="space-y-1.5 text-xs text-slate-500">
                   <div className="flex items-center gap-1.5">
-                    <MapPin size={12} className="text-slate-400" />
+                    <MapPin size={11} className="text-slate-300 flex-shrink-0" />
                     {[p.neighborhood, p.district, p.city].filter(Boolean).join(", ")}
                   </div>
                   {p.price && (
                     <div className="flex items-center gap-1.5">
-                      <TrendingUp size={12} className="text-slate-400" />
-                      <span className="font-semibold text-slate-800">{p.price.toLocaleString("tr-TR")} ₺</span>
+                      <TrendingUp size={11} className="text-slate-300 flex-shrink-0" />
+                      <span className="font-bold text-slate-900 text-sm">{p.price.toLocaleString("tr-TR")} ₺</span>
+                      {p.price_type === "kira" && <span className="text-slate-400">/ay</span>}
                     </div>
                   )}
                   <div className="flex items-center gap-3">
-                    {p.size && <span className="flex items-center gap-1"><Ruler size={12} className="text-slate-400" /> {p.size} m²</span>}
-                    {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={12} className="text-slate-400" /> {p.rooms}</span>}
+                    {p.size && <span className="flex items-center gap-1"><Ruler size={11} className="text-slate-300" /> {p.size} m²</span>}
+                    {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={11} className="text-slate-300" /> {p.rooms}</span>}
                     {p.floor != null && <span>{p.floor}{p.total_floors ? `/${p.total_floors}` : ""}. kat</span>}
                   </div>
                 </div>
                 {p.features.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-slate-50">
                     {p.features.slice(0, 4).map(f => (
-                      <span key={f} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{f}</span>
+                      <span key={f} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg font-medium">{f}</span>
                     ))}
-                    {p.features.length > 4 && <span className="text-xs text-slate-400">+{p.features.length - 4}</span>}
+                    {p.features.length > 4 && <span className="text-xs text-slate-400 font-medium">+{p.features.length - 4}</span>}
                   </div>
                 )}
-                {p.description && <p className="text-xs text-slate-400 mt-2 line-clamp-2">{p.description}</p>}
+                {p.description && !p.features.length && <p className="text-xs text-slate-400 mt-3 line-clamp-2">{p.description}</p>}
               </div>
             );
           })}

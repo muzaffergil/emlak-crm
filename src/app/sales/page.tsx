@@ -42,15 +42,15 @@ function EditSaleModal({ sale, onClose, onSaved }: {
     }
   }
 
-  const inp = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300";
-  const lbl = "text-xs font-semibold text-slate-500 block mb-1";
+  const inp = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400";
+  const lbl = "text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800 text-sm">Satış Kaydını Düzenle</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
+          <h2 className="font-bold text-slate-900 text-sm">Satış Kaydını Düzenle</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -73,12 +73,12 @@ function EditSaleModal({ sale, onClose, onSaved }: {
           {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         </div>
 
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg">İptal</button>
+        <div className="flex items-center gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">İptal</button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="ml-auto flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg"
+            className="ml-auto flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
           >
             <Save size={14} /> {saving ? "Kaydediliyor…" : "Kaydet"}
           </button>
@@ -109,10 +109,10 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Başlık */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl sticky top-0">
           <div className="flex-1 min-w-0 pr-3">
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 mb-1">
               <BadgeCheck size={11} /> Satıldı — {date}
@@ -215,19 +215,19 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-slate-100 space-y-2">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl space-y-2.5 sticky bottom-0">
           <div className="flex items-center gap-2">
-            <button onClick={onEdit} className="flex items-center gap-1.5 px-3 py-2 text-sm text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+            <button onClick={onEdit} className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-amber-600 hover:bg-amber-50 rounded-xl transition-colors">
               <Pencil size={14} /> Düzenle
             </button>
-            <button onClick={onDelete} className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+            <button onClick={onDelete} className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors">
               <Trash2 size={14} /> Kaydı Sil
             </button>
-            <button onClick={onClose} className="ml-auto px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">Kapat</button>
+            <button onClick={onClose} className="ml-auto px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">Kapat</button>
           </div>
           <button
             onClick={onReturn}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600 hover:bg-amber-50 text-sm rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600 hover:bg-amber-50 text-sm font-medium rounded-xl transition-colors"
           >
             <RotateCcw size={14} /> Satış İptal — Portföye Geri Al
           </button>
@@ -323,7 +323,7 @@ export default function SalesPage() {
             return (
               <div
                 key={sale.id}
-                className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
+                className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-5 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
                 onClick={() => { setSelected(sale); setEditing(false); }}
               >
                 <div className="flex items-center justify-between mb-3">
