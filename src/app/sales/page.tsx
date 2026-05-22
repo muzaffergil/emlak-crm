@@ -89,13 +89,12 @@ function EditSaleModal({ sale, onClose, onSaved }: {
 }
 
 // ── Detay Modalı ──────────────────────────────────────────────────────────────
-function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggle }: {
+function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
   sale: Sale;
   onClose: () => void;
   onDelete: () => void;
   onEdit: () => void;
   onReturn: () => void;
-  onCollectedToggle: (sale: Sale) => void;
 }) {
   const p = sale.property_data;
   const date = new Date(sale.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
@@ -103,13 +102,26 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
   const waPhone = (phone: string) => phone.replace(/\D/g, "").replace(/^0/, "90");
   const [buyerComm, setBuyerComm] = useState(sale.buyer_commission != null ? String(sale.buyer_commission) : "");
   const [sellerComm, setSellerComm] = useState(sale.seller_commission != null ? String(sale.seller_commission) : "");
+  const [buyerPaid, setBuyerPaid] = useState(sale.buyer_commission_paid > 0 ? String(sale.buyer_commission_paid) : "");
+  const [sellerPaid, setSellerPaid] = useState(sale.seller_commission_paid > 0 ? String(sale.seller_commission_paid) : "");
   const [commSaving, setCommSaving] = useState(false);
+
+  const buyerTotal = buyerComm ? Number(buyerComm) : 0;
+  const sellerTotal = sellerComm ? Number(sellerComm) : 0;
+  const buyerPaidNum = buyerPaid ? Number(buyerPaid) : 0;
+  const sellerPaidNum = sellerPaid ? Number(sellerPaid) : 0;
+  const totalOwed = buyerTotal + sellerTotal;
+  const totalPaid = buyerPaidNum + sellerPaidNum;
+  const totalPending = totalOwed - totalPaid;
 
   async function saveComm() {
     setCommSaving(true);
-    const buyer = buyerComm ? Number(buyerComm) : undefined;
-    const seller = sellerComm ? Number(sellerComm) : undefined;
-    await saleStore.update(sale.id, { buyer_commission: buyer, seller_commission: seller });
+    await saleStore.update(sale.id, {
+      buyer_commission: buyerTotal || undefined,
+      seller_commission: sellerTotal || undefined,
+      buyer_commission_paid: buyerPaidNum,
+      seller_commission_paid: sellerPaidNum,
+    });
     setCommSaving(false);
   }
 
@@ -174,54 +186,72 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn, onCollectedToggl
             </div>
           )}
 
-          <div className={`border rounded-xl p-4 space-y-3 ${sale.commission_collected ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-100"}`}>
-              <div className="flex items-center justify-between">
-                <p className={`text-xs font-semibold uppercase tracking-wide ${sale.commission_collected ? "text-green-700" : "text-blue-700"}`}>
-                  Komisyon {sale.commission_collected ? "— Tahsil Edildi ✓" : ""}
-                </p>
-                <button
-                  onClick={() => onCollectedToggle(sale)}
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
-                    sale.commission_collected
-                      ? "bg-green-200 text-green-800 hover:bg-green-300"
-                      : "bg-white border border-blue-200 text-blue-700 hover:bg-blue-100"
-                  }`}
-                >
-                  {sale.commission_collected ? "Geri Al" : "Tahsil Et"}
-                </button>
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
+              {/* Başlık */}
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Komisyon Takibi</p>
+                {totalPending <= 0 && totalOwed > 0 && (
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Tamamı Tahsil ✓</span>
+                )}
+                {totalPending > 0 && totalPaid > 0 && (
+                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Kısmen Tahsil</span>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-1">Alıcıdan (₺)</label>
-                  <input
-                    type="number" min={0} step={100}
-                    value={buyerComm}
-                    onChange={e => setBuyerComm(e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-blue-200 bg-white rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300/50 placeholder:text-slate-300"
-                  />
+
+              {/* İki kolon: alıcı / satıcı */}
+              <div className="grid grid-cols-2 divide-x divide-slate-100">
+                {/* Alıcı */}
+                <div className="p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-600 uppercase">Alıcıdan</p>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Toplam (₺)</label>
+                    <input type="number" min={0} step={100} value={buyerComm} onChange={e => setBuyerComm(e.target.value)} placeholder="0"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-300/50 placeholder:text-slate-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Tahsil Edilen (₺)</label>
+                    <input type="number" min={0} step={100} value={buyerPaid} onChange={e => setBuyerPaid(e.target.value)} placeholder="0"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300/50 placeholder:text-slate-300" />
+                  </div>
+                  {buyerTotal > 0 && (
+                    <div className={`text-xs font-semibold rounded-lg px-2 py-1 text-center ${buyerTotal - buyerPaidNum <= 0 ? "bg-emerald-50 text-emerald-700" : "bg-orange-50 text-orange-700"}`}>
+                      Kalan: {Math.max(0, buyerTotal - buyerPaidNum).toLocaleString("tr-TR")} ₺
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-1">Satıcıdan (₺)</label>
-                  <input
-                    type="number" min={0} step={100}
-                    value={sellerComm}
-                    onChange={e => setSellerComm(e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-blue-200 bg-white rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300/50 placeholder:text-slate-300"
-                  />
+
+                {/* Satıcı */}
+                <div className="p-3 space-y-2">
+                  <p className="text-xs font-semibold text-blue-600 uppercase">Satıcıdan</p>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Toplam (₺)</label>
+                    <input type="number" min={0} step={100} value={sellerComm} onChange={e => setSellerComm(e.target.value)} placeholder="0"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-300/50 placeholder:text-slate-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Tahsil Edilen (₺)</label>
+                    <input type="number" min={0} step={100} value={sellerPaid} onChange={e => setSellerPaid(e.target.value)} placeholder="0"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 bg-white rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300/50 placeholder:text-slate-300" />
+                  </div>
+                  {sellerTotal > 0 && (
+                    <div className={`text-xs font-semibold rounded-lg px-2 py-1 text-center ${sellerTotal - sellerPaidNum <= 0 ? "bg-emerald-50 text-emerald-700" : "bg-orange-50 text-orange-700"}`}>
+                      Kalan: {Math.max(0, sellerTotal - sellerPaidNum).toLocaleString("tr-TR")} ₺
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className={`text-base font-bold ${sale.commission_collected ? "text-green-800" : "text-blue-800"}`}>
-                  Toplam: {((buyerComm ? Number(buyerComm) : 0) + (sellerComm ? Number(sellerComm) : 0)).toLocaleString("tr-TR")} ₺
-                </span>
-                <button
-                  onClick={saveComm}
-                  disabled={commSaving}
-                  className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.97] disabled:opacity-50 text-white rounded-lg font-medium transition-all"
-                >
-                  {commSaving ? "Kaydediliyor…" : "Kaydet"}
+
+              {/* Toplam özet + kaydet */}
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-100">
+                <div className="text-sm">
+                  <span className="text-slate-500 text-xs">Toplam açık: </span>
+                  <span className={`font-bold ${totalPending > 0 ? "text-orange-600" : "text-emerald-600"}`}>
+                    {Math.max(0, totalPending).toLocaleString("tr-TR")} ₺
+                  </span>
+                </div>
+                <button onClick={saveComm} disabled={commSaving}
+                  className="flex items-center gap-1.5 text-xs px-3.5 py-2 bg-slate-800 hover:bg-slate-900 active:scale-[0.97] disabled:opacity-50 text-white rounded-xl font-semibold transition-all">
+                  <Save size={12} /> {commSaving ? "Kaydediliyor…" : "Kaydet"}
                 </button>
               </div>
             </div>
@@ -307,13 +337,6 @@ export default function SalesPage() {
     setEditing(false);
   }
 
-  async function handleCollectedToggle(sale: Sale) {
-    const updated = { ...sale, commission_collected: !sale.commission_collected };
-    await saleStore.update(sale.id, { commission_collected: updated.commission_collected });
-    setSales(prev => prev.map(s => s.id === sale.id ? updated : s));
-    setSelected(updated);
-  }
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -355,9 +378,13 @@ export default function SalesPage() {
                     <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
                       <BadgeCheck size={11} /> {date}
                     </span>
-                    {sale.commission_collected && (
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>
-                    )}
+                    {(() => {
+                      const total = (sale.buyer_commission ?? 0) + (sale.seller_commission ?? 0);
+                      const paid = sale.buyer_commission_paid + sale.seller_commission_paid;
+                      if (total > 0 && paid >= total) return <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>;
+                      if (total > 0 && paid > 0) return <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">{(total - paid).toLocaleString("tr-TR")} ₺ açık</span>;
+                      return null;
+                    })()}
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmDelete(sale); }}
@@ -410,7 +437,6 @@ export default function SalesPage() {
           onDelete={() => { setSelected(null); setConfirmDelete(selected); }}
           onEdit={() => setEditing(true)}
           onReturn={() => { setSelected(null); setConfirmReturn(selected); }}
-          onCollectedToggle={handleCollectedToggle}
         />
       )}
 

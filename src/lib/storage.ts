@@ -280,7 +280,8 @@ export interface Sale {
   sold_at: string;
   buyer_commission?: number;
   seller_commission?: number;
-  commission_collected: boolean;
+  buyer_commission_paid: number;
+  seller_commission_paid: number;
   created_at: string;
 }
 
@@ -295,7 +296,8 @@ function toSale(r: any): Sale {
     sold_at: r.sold_at,
     buyer_commission: r.buyer_commission != null ? Number(r.buyer_commission) : undefined,
     seller_commission: r.seller_commission != null ? Number(r.seller_commission) : undefined,
-    commission_collected: r.commission_collected ?? false,
+    buyer_commission_paid: Number(r.buyer_commission_paid ?? 0),
+    seller_commission_paid: Number(r.seller_commission_paid ?? 0),
     created_at: r.created_at,
   };
 }
@@ -320,7 +322,7 @@ export const saleStore = {
     return toSale(row);
   },
 
-  async update(id: number, payload: { property_data?: Property; buyer_name?: string; buyer_phone?: string; sold_at?: string; buyer_commission?: number; seller_commission?: number; commission_collected?: boolean }): Promise<void> {
+  async update(id: number, payload: { property_data?: Property; buyer_name?: string; buyer_phone?: string; sold_at?: string; buyer_commission?: number; seller_commission?: number; buyer_commission_paid?: number; seller_commission_paid?: number }): Promise<void> {
     const { error } = await supabase.from("sales").update(payload).eq("id", id);
     if (error) throw error;
   },

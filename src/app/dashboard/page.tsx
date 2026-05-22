@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const stale = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
   const totalSaleValue = sales.reduce((sum, s) => sum + (s.property_data.price ?? 0), 0);
   const totalCommission = sales.reduce((sum, s) => sum + (s.buyer_commission ?? 0) + (s.seller_commission ?? 0), 0);
-  const collectedCommission = sales.filter(s => s.commission_collected).reduce((sum, s) => sum + (s.buyer_commission ?? 0) + (s.seller_commission ?? 0), 0);
+  const collectedCommission = sales.reduce((sum, s) => sum + s.buyer_commission_paid + s.seller_commission_paid, 0);
   const pendingCommission = totalCommission - collectedCommission;
   const recentSales = sales.slice(0, 5);
 
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                 <CheckCircle2 size={11} /> Tahsil Edilen
               </p>
               <p className="text-2xl font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
-              <p className="text-xs text-emerald-600 mt-1">{sales.filter(s => s.commission_collected).length} satış</p>
+              <p className="text-xs text-emerald-600 mt-1">{sales.filter(s => s.buyer_commission_paid + s.seller_commission_paid > 0).length} satış</p>
             </div>
             <div className={`px-6 py-5 ${pendingCommission > 0 ? "bg-orange-50/50" : ""}`}>
               <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                 {pendingCommission.toLocaleString("tr-TR")} ₺
               </p>
               <p className={`text-xs mt-1 ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>
-                {sales.filter(s => !s.commission_collected).length} satış
+                {sales.filter(s => (s.buyer_commission ?? 0) + (s.seller_commission ?? 0) > s.buyer_commission_paid + s.seller_commission_paid).length} satış
               </p>
             </div>
           </div>
