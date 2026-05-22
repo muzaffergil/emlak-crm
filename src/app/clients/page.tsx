@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle, MapPin, TrendingUp, Ruler, DoorOpen, ArrowLeft } from "lucide-react";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle, MapPin, TrendingUp, Ruler, DoorOpen, ArrowLeft, RotateCcw } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { clientStore, propertyStore, type Client, type Property } from "@/lib/storage";
 import { MultiLocationPicker } from "@/components/LocationPicker";
@@ -480,6 +480,11 @@ export default function ClientsPage() {
     return Array.from(map.values());
   }, [properties]);
 
+  async function reactivateClient(id: number) {
+    await clientStore.update(id, { intent: "aliyor" });
+    setClients(prev => prev.map(c => c.id === id ? { ...c, intent: "aliyor" } : c));
+  }
+
   async function deleteClient(id: number) {
     await clientStore.delete(id);
     setClients((prev) => prev.filter((c) => c.id !== id));
@@ -820,6 +825,13 @@ export default function ClientsPage() {
                         {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
                       </div>
                       <div className="flex items-center gap-1 ml-3">
+                        <button
+                          onClick={e => { e.stopPropagation(); reactivateClient(c.id); }}
+                          title="Aktif alıcıya taşı"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:bg-emerald-50 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          <RotateCcw size={12} /> Aktif Yap
+                        </button>
                         <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
                         <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                       </div>
