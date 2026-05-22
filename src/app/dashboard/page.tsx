@@ -37,7 +37,7 @@ export default function DashboardPage() {
       saleStore.getAll(),
     ]).then(([props, clients, mts, sls]) => {
       setProperties(props);
-      setBuyers(clients.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor").length);
+      setBuyers(clients.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor" ).length);
       setMatches(mts.length);
       setSales(sls);
       setLoading(false);

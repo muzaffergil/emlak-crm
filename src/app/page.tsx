@@ -505,6 +505,7 @@ function SaleModal({ property, onClose, onConfirm }: {
       }
       if (!buyerName) return;
       await saleStore.add({ property_data: property, buyer_name: buyerName, buyer_phone: buyerPhone, buyer_id: buyerId });
+      if (buyerId != null) await clientStore.update(buyerId, { intent: "satin_aldi" });
       await matchStore.deleteByProperty(property.id);
       await propertyStore.delete(property.id);
       onConfirm(property.id);

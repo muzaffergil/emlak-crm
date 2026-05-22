@@ -16,6 +16,7 @@ const INTENT_LABELS: Record<string, string> = {
   kiraciyor: "Kiracı",
   satiyor: "Satıcı",
   kiraya_veriyor: "Kiraya Veren",
+  satin_aldi: "Satın Aldı",
 };
 
 const ROOMS_OPTIONS = ["1+0", "1+1", "2+1", "3+1", "4+1", "5+1", "5+2", "6+1"];
@@ -696,11 +697,11 @@ export default function ClientsPage() {
           <p>Henüz müşteri eklenmemiş.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <><div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Alıcılar kolonu */}
           <div>
             {(() => {
-              const group = clients.filter((c) => ["aliyor", "kiraciyor"].includes(c.intent));
+              const group = clients.filter((c) => ["aliyor", "kiraciyor"].includes(c.intent) );
               return (
                 <>
                   <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm">
@@ -791,6 +792,45 @@ export default function ClientsPage() {
             )}
           </div>
         </div>
+
+        {/* Geçmiş Alıcılar */}
+        {(() => {
+          const pastBuyers = clients.filter(c => c.intent === "satin_aldi");
+          if (pastBuyers.length === 0) return null;
+          return (
+            <div className="mt-6">
+              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-slate-600 bg-slate-50 border-slate-200 shadow-sm">
+                <span className="font-semibold text-sm">Geçmiş Alıcılar</span>
+                <span className="text-xs font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{pastBuyers.length} kişi</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {pastBuyers.map((c) => (
+                  <div key={c.id} onClick={() => setViewingClient(c)}
+                    className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 opacity-80 hover:opacity-100">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-700">{c.name}</h3>
+                          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Satın Aldı</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                          {c.phone && <span className="flex items-center gap-1"><Phone size={11} />{c.phone}</span>}
+                          {c.email && <span className="flex items-center gap-1"><Mail size={11} />{c.email}</span>}
+                        </div>
+                        {c.notes && <p className="text-xs text-slate-400 mt-1">{c.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 ml-3">
+                        <button onClick={e => { e.stopPropagation(); startEdit(c); }} className="text-slate-300 hover:text-amber-500 p-1"><Pencil size={14} /></button>
+                        <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c); }} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+        </>
       )}
     </div>
   );
