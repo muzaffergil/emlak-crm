@@ -1,5 +1,10 @@
 import { supabase } from "./supabase";
 
+export interface PriceHistoryEntry {
+  price: number;
+  date: string;
+}
+
 export interface Property {
   id: number;
   title: string;
@@ -20,6 +25,7 @@ export interface Property {
   owner_name?: string;
   owner_phone?: string;
   photos?: string[];
+  price_history?: PriceHistoryEntry[];
   created_at: string;
 }
 
@@ -74,6 +80,7 @@ function toProperty(r: any): Property {
     owner_name: r.owner_name ?? undefined,
     owner_phone: r.owner_phone ?? undefined,
     photos: Array.isArray(r.photos) && r.photos.length > 0 ? r.photos : undefined,
+    price_history: Array.isArray(r.price_history) ? r.price_history : [],
     created_at: r.created_at,
   };
 }

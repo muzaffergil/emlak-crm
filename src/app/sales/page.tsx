@@ -100,6 +100,7 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
   const date = new Date(sale.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
   const location = [p.neighborhood, p.district, p.city].filter(Boolean).join(", ");
   const waPhone = (phone: string) => phone.replace(/\D/g, "").replace(/^0/, "90");
+  const [commRate, setCommRate] = useState(2);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
@@ -159,6 +160,25 @@ function SaleModal({ sale, onClose, onDelete, onEdit, onReturn }: {
                   <a href={`https://wa.me/${waPhone(p.owner_phone)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-0.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full"><MessageCircle size={10} /> WA</a>
                 </div>
               )}
+            </div>
+          )}
+
+          {p.price && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs font-semibold text-blue-700 uppercase mb-2">Komisyon Hesaplayıcı</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Oran:</span>
+                <input
+                  type="number" min={0} max={10} step={0.5}
+                  value={commRate}
+                  onChange={e => setCommRate(Number(e.target.value))}
+                  className="w-16 px-2 py-1 border border-blue-200 rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-300"
+                />
+                <span className="text-xs text-slate-500">%</span>
+                <span className="ml-auto text-sm font-bold text-blue-800">
+                  {Math.round(p.price * commRate / 100).toLocaleString("tr-TR")} ₺
+                </span>
+              </div>
             </div>
           )}
 

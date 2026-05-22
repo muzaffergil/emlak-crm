@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight } from "lucide-react";
-import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client } from "@/lib/storage";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ExcelTemplateModal from "@/components/ExcelTemplateModal";
@@ -48,6 +48,11 @@ function EditModal({ property, onClose, onSave }: {
 
   async function handleSave() {
     setSaving(true);
+    const newPrice = form.price ? Number(form.price) : undefined;
+    const priceChanged = newPrice !== property.price && property.price != null;
+    const updatedHistory: PriceHistoryEntry[] = priceChanged
+      ? [{ price: property.price!, date: new Date().toISOString().slice(0, 10) }, ...(property.price_history ?? [])]
+      : (property.price_history ?? []);
     const updated: Property = {
       ...property,
       title: form.title.trim() || property.title,
@@ -55,7 +60,7 @@ function EditModal({ property, onClose, onSave }: {
       city: form.city.trim() || "Gaziantep",
       district: form.district.trim() || undefined,
       neighborhood: form.neighborhood.trim() || undefined,
-      price: form.price ? Number(form.price) : undefined,
+      price: newPrice,
       price_type: form.price_type,
       size: form.size ? Number(form.size) : undefined,
       rooms: form.rooms.trim() || undefined,
@@ -67,6 +72,7 @@ function EditModal({ property, onClose, onSave }: {
       owner_name: form.owner_name.trim() || undefined,
       owner_phone: form.owner_phone.trim() || undefined,
       photos: photos.length > 0 ? photos : undefined,
+      price_history: updatedHistory,
     };
     try {
       await propertyStore.update(property.id, updated);
@@ -405,6 +411,23 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
             </div>
           )}
 
+          {/* Fiyat geçmişi */}
+          {property.price_history && property.price_history.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-1.5">
+                <History size={11} /> Fiyat Geçmişi
+              </p>
+              <div className="space-y-1">
+                {property.price_history.map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs bg-slate-50 px-3 py-1.5 rounded-lg">
+                    <span className="font-medium text-slate-600">{entry.price.toLocaleString("tr-TR")} ₺</span>
+                    <span className="text-slate-400">{new Date(entry.date).toLocaleDateString("tr-TR")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Ham metin */}
           {property.raw_text && (
             <div>
@@ -618,6 +641,21 @@ function SaleModal({ property, onClose, onConfirm }: {
       </div>
     </div>
   );
+}
+
+function buildShareMessage(p: Property): string {
+  const loc = [p.neighborhood, p.district, p.city].filter(Boolean).join(", ");
+  const priceStr = p.price ? `${p.price.toLocaleString("tr-TR")} ₺${p.price_type === "kira" ? "/ay" : ""}` : "";
+  const details = [p.size && `${p.size}m²`, p.rooms].filter(Boolean).join(" • ");
+  return [
+    `🏠 *${p.title}*`,
+    loc && `📍 ${loc}`,
+    priceStr && `💰 ${priceStr}`,
+    details && `📐 ${details}`,
+    p.owner_phone && `📞 ${p.owner_phone}`,
+    ``,
+    `EstateIQ Portföy`,
+  ].filter(Boolean).join("\n");
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -962,11 +1000,20 @@ export default function PortfolioPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((p) => {
             const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
+            const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
+            const isOld = ageDays >= 30;
+            const shareMsg = buildShareMessage(p);
+            const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
             return (
               <div key={p.id} onClick={() => setViewing(p)} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 cursor-pointer">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-slate-800 text-sm leading-tight">{p.title}</h3>
                   <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <a href={shareHref} target="_blank" rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
+                      className="text-slate-300 hover:text-green-500 transition-colors">
+                      <Share2 size={14} />
+                    </a>
                     <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla" className="text-slate-300 hover:text-green-600 transition-colors">
                       <CheckCircle2 size={14} />
                     </button>
@@ -984,6 +1031,11 @@ export default function PortfolioPage() {
                   <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
                     {p.price_type === "kira" ? "Kiralık" : "Satılık"}
                   </span>
+                  {isOld && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 flex items-center gap-1">
+                      <Clock size={9} /> {ageDays}g
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-1 text-xs text-slate-600">
                   <div className="flex items-center gap-1.5">

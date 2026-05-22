@@ -2,15 +2,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map } from "lucide-react";
+import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const links = [
+  { href: "/dashboard", label: "Genel Bakış", icon: LayoutDashboard },
   { href: "/", label: "Portföy", icon: Building2 },
   { href: "/clients", label: "Müşteriler", icon: Users },
   { href: "/matches", label: "Eşleşmeler", icon: Zap },
-  { href: "/sales", label: "Gerçekleşen Satışlar", icon: BadgeCheck },
+  { href: "/sales", label: "Satışlar", icon: BadgeCheck },
   { href: "/map", label: "Harita", icon: Map },
 ];
 
