@@ -209,7 +209,12 @@ export default function DashboardPage() {
                             <Clock size={13} className="text-orange-500" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
+                              {s.buyer_commission_paid + s.seller_commission_paid === 0 && (
+                                <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Ödenmedi</span>
+                              )}
+                            </div>
                             <p className="text-xs text-slate-400 mt-0.5">{s.buyer_name}</p>
                             <div className="flex gap-3 mt-1 text-xs">
                               {bPending > 0 && <span className="text-orange-600 font-medium">Alıcıdan: {bPending.toLocaleString("tr-TR")} ₺</span>}

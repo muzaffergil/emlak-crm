@@ -383,6 +383,7 @@ export default function SalesPage() {
                       const paid = sale.buyer_commission_paid + sale.seller_commission_paid;
                       if (total > 0 && paid >= total) return <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Komisyon ✓</span>;
                       if (total > 0 && paid > 0) return <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">{(total - paid).toLocaleString("tr-TR")} ₺ açık</span>;
+                      if (total > 0 && paid === 0) return <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Henüz ödenmedi</span>;
                       return null;
                     })()}
                   </div>
