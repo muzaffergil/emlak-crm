@@ -1,5 +1,11 @@
 import { supabase } from "./supabase";
 
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) throw new Error("Oturum bulunamadı");
+  return data.user.id;
+}
+
 export interface PriceHistoryEntry {
   price: number;
   date: string;
@@ -131,9 +137,10 @@ export const propertyStore = {
   },
 
   async add(data: Omit<Property, "id" | "created_at">): Promise<Property> {
+    const uid = await currentUserId();
     const { data: row, error } = await supabase
       .from("properties")
-      .insert([data])
+      .insert([{ ...data, user_id: uid }])
       .select()
       .single();
     if (error) throw error;
@@ -142,9 +149,10 @@ export const propertyStore = {
 
   async addMany(items: Omit<Property, "id" | "created_at">[]): Promise<Property[]> {
     if (items.length === 0) return [];
+    const uid = await currentUserId();
     const { data, error } = await supabase
       .from("properties")
-      .insert(items)
+      .insert(items.map((p) => ({ ...p, user_id: uid })))
       .select();
     if (error) throw error;
     return (data ?? []).map(toProperty);
@@ -167,10 +175,11 @@ export const propertyStore = {
   },
 
   async deleteAll(): Promise<void> {
+    const uid = await currentUserId();
     const { error } = await supabase
       .from("properties")
       .delete()
-      .gte("id", 0);
+      .eq("user_id", uid);
     if (error) throw error;
   },
 };
@@ -186,9 +195,10 @@ export const clientStore = {
   },
 
   async add(data: Omit<Client, "id" | "created_at">): Promise<Client> {
+    const uid = await currentUserId();
     const { data: row, error } = await supabase
       .from("clients")
-      .insert([data])
+      .insert([{ ...data, user_id: uid }])
       .select()
       .single();
     if (error) throw error;
@@ -197,9 +207,10 @@ export const clientStore = {
 
   async addMany(items: Omit<Client, "id" | "created_at">[]): Promise<Client[]> {
     if (items.length === 0) return [];
+    const uid = await currentUserId();
     const { data, error } = await supabase
       .from("clients")
-      .insert(items)
+      .insert(items.map((c) => ({ ...c, user_id: uid })))
       .select();
     if (error) throw error;
     return (data ?? []).map(toClient);
@@ -222,10 +233,11 @@ export const clientStore = {
   },
 
   async deleteAll(): Promise<void> {
+    const uid = await currentUserId();
     const { error } = await supabase
       .from("clients")
       .delete()
-      .gte("id", 0);
+      .eq("user_id", uid);
     if (error) throw error;
   },
 };
@@ -242,7 +254,8 @@ export const matchStore = {
 
   async insertMany(items: Omit<Match, "id" | "created_at">[]): Promise<void> {
     if (items.length === 0) return;
-    const { error } = await supabase.from("matches").insert(items);
+    const uid = await currentUserId();
+    const { error } = await supabase.from("matches").insert(items.map((m) => ({ ...m, user_id: uid })));
     if (error) throw error;
   },
 
@@ -263,10 +276,11 @@ export const matchStore = {
   },
 
   async deleteAll(): Promise<void> {
+    const uid = await currentUserId();
     const { error } = await supabase
       .from("matches")
       .delete()
-      .gte("id", 0);
+      .eq("user_id", uid);
     if (error) throw error;
   },
 };
@@ -313,9 +327,10 @@ export const saleStore = {
   },
 
   async add(payload: { property_data: Property; buyer_name: string; buyer_phone?: string; buyer_id?: number }): Promise<Sale> {
+    const uid = await currentUserId();
     const { data: row, error } = await supabase
       .from("sales")
-      .insert([payload])
+      .insert([{ ...payload, user_id: uid }])
       .select()
       .single();
     if (error) throw error;

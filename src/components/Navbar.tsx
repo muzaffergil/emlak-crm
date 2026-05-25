@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useAuth } from "@/components/AuthProvider";
+import UserMenu from "@/components/UserMenu";
 
 const links = [
   { href: "/dashboard", label: "Genel Bakış", icon: LayoutDashboard },
@@ -55,12 +57,15 @@ async function importData(file: File) {
 }
 
 export default function Navbar() {
+  const { user } = useAuth();
   const pathname = usePathname();
   const fileRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  if (!user) return null;
 
   async function handleExport() {
     setExporting(true);
@@ -127,7 +132,7 @@ export default function Navbar() {
               })}
             </div>
 
-            {/* Masaüstü dışa/içe aktar */}
+            {/* Masaüstü dışa/içe aktar + kullanıcı menüsü */}
             <div className="hidden md:flex items-center gap-1 ml-auto">
               <button
                 onClick={handleExport}
@@ -145,6 +150,8 @@ export default function Navbar() {
                 {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                 İçe Aktar
               </button>
+              <div className="w-px h-5 bg-white/[0.1] mx-1" />
+              <UserMenu />
             </div>
 
             {/* Mobil hamburger */}
@@ -195,6 +202,9 @@ export default function Navbar() {
                   {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
                   İçe Aktar
                 </button>
+                <div className="px-2 pt-1">
+                  <UserMenu />
+                </div>
               </div>
             </div>
           )}
