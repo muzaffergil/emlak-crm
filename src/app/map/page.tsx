@@ -86,23 +86,22 @@ export default function MapPage() {
       {/* Seçilen portföy */}
       {selected && st && (
         <>
-          {/* Mobil: harita üzerine koyu overlay, tıklayınca kapat */}
+          {/* Mobil overlay — fixed, navbar altından başlar */}
           <div
-            className="absolute inset-0 bg-black/20 z-[34] sm:hidden"
+            className="fixed inset-x-0 bottom-0 bg-black/20 z-[50] sm:hidden"
+            style={{ top: "60px" }}
             onClick={() => setSelected(null)}
           />
 
           {/*
-           * Kart:
-           *   Mobil  → bottom sheet (tam genişlik, aşağıdan, yuvarlatılmış üst)
-           *   Tablet+ → sağ panel  (sabit genişlik, sağ üst köşe)
+           * Kart — fixed kullanarak Leaflet GPU katmanlarının üstünde kalır
+           *   Mobil  → bottom sheet (tam genişlik, aşağıdan)
+           *   Tablet+ → sağ panel (navbar altından, sağ üst köşe)
            */}
           <div className={[
-            "absolute z-[35] bg-white shadow-2xl ring-1 ring-black/[0.06] flex flex-col overflow-hidden",
-            // Mobil: tam genişlik, aşağıdan, max %75 ekran
+            "fixed z-[51] bg-white shadow-2xl ring-1 ring-black/[0.06] flex flex-col overflow-hidden",
             "bottom-0 left-0 right-0 rounded-t-2xl max-h-[75vh]",
-            // Tablet ve üzeri: sabit genişlik sağ panel
-            "sm:top-4 sm:right-4 sm:bottom-auto sm:left-auto sm:w-72 sm:rounded-2xl sm:max-h-[calc(100%-2rem)]",
+            "sm:top-[68px] sm:bottom-auto sm:left-auto sm:right-4 sm:w-72 sm:rounded-2xl sm:max-h-[calc(100vh-80px)]",
           ].join(" ")}>
 
             {/* Mobil sürükleme çubuğu */}
