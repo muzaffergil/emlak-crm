@@ -52,6 +52,12 @@ select:focus-visible {
   outline: none;
 }
 
+/* Chat sayfası — iOS input zoom engeli (font-size < 16px olursa iOS otomatik zoom yapar) */
+.chat-input {
+  font-size: 16px !important;
+  -webkit-text-size-adjust: 100%;
+}
+
 /* Leaflet harita — iOS / Android touch düzeltmeleri */
 .leaflet-container {
   /* Sayfa scroll'unun harita pan'ını engellemesini önle */

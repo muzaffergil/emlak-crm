@@ -178,21 +178,21 @@ export default function ChatPage() {
       });
   }, []);
 
-  // iOS klavye düzeltmesi — visualViewport ile container yüksekliğini güncelle
+  // iOS klavye düzeltmesi — container boyutuna dokunmadan sadece padding ile klavye üstüne çık
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
+      const kbHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       if (containerRef.current) {
-        containerRef.current.style.height = `${vv.height}px`;
-        containerRef.current.style.top    = `${vv.offsetTop}px`;
+        containerRef.current.style.paddingBottom = kbHeight > 0 ? `${kbHeight}px` : "0px";
       }
-      // Klavye açılınca son mesajı görünür tut
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
+      if (kbHeight > 0) {
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 30);
+      }
     };
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
-    update();
     return () => { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); };
   }, []);
 
@@ -334,8 +334,7 @@ export default function ChatPage() {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-x-0 top-0 z-50 flex flex-col bg-slate-100"
-      style={{ height: "100dvh" }}
+      className="fixed inset-0 z-50 flex flex-col bg-slate-100"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 bg-white border-b border-slate-200 shadow-sm flex-shrink-0"
@@ -427,8 +426,8 @@ export default function ChatPage() {
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
             placeholder="Mesajınızı yazın…"
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:bg-white transition-all disabled:opacity-50"
-            style={{ fontSize: "16px" /* iOS zoom'u engeller */ }}
+            className="chat-input flex-1 px-4 py-3 bg-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:bg-white transition-all disabled:opacity-50"
+            style={{ fontSize: "16px" }}
           />
           <button
             onClick={send}
