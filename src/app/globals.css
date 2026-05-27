@@ -51,3 +51,16 @@ textarea:focus-visible,
 select:focus-visible {
   outline: none;
 }
+
+/* Leaflet harita — iOS / Android touch düzeltmeleri */
+.leaflet-container {
+  /* Sayfa scroll'unun harita pan'ını engellemesini önle */
+  touch-action: none;
+  /* iOS'ta tile yükleme sırasında yanıp sönmeyi önle */
+  -webkit-tap-highlight-color: transparent;
+}
+.leaflet-tile-pane img {
+  /* iOS GPU katmanı — scroll esnasında bulanıklaşmayı önler */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
