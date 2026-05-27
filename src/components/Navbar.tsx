@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText } from "lucide-react";
+import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText, Bot } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuth } from "@/components/AuthProvider";
@@ -66,6 +66,15 @@ export default function Navbar() {
   const [importing, setImporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [chatCopied, setChatCopied] = useState(false);
+
+  function copyChatLink() {
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    const url = `${window.location.origin}${base}/chat`;
+    navigator.clipboard.writeText(url);
+    setChatCopied(true);
+    setTimeout(() => setChatCopied(false), 2000);
+  }
 
   if (!user) return null;
 
@@ -137,6 +146,15 @@ export default function Navbar() {
             {/* Masaüstü dışa/içe aktar + kullanıcı menüsü */}
             <div className="hidden md:flex items-center gap-1 ml-auto">
               <button
+                onClick={copyChatLink}
+                title="Müşteri chatbot linkini kopyala"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/[0.08]"
+              >
+                <Bot size={15} className={chatCopied ? "text-emerald-400" : ""} />
+                {chatCopied ? <span className="text-emerald-400">Kopyalandı!</span> : "Chatbot"}
+              </button>
+              <div className="w-px h-5 bg-white/[0.1] mx-1" />
+              <button
                 onClick={handleExport}
                 disabled={exporting}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
@@ -189,6 +207,13 @@ export default function Navbar() {
                   );
                 })}
                 <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
+                  <button
+                    onClick={() => { setMenuOpen(false); copyChatLink(); }}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
+                  >
+                    <Bot size={17} className={chatCopied ? "text-emerald-400" : ""} />
+                    {chatCopied ? <span className="text-emerald-400">Link kopyalandı!</span> : "Müşteri Chatbot Linki"}
+                  </button>
                   <button
                     onClick={handleExport}
                     disabled={exporting}
