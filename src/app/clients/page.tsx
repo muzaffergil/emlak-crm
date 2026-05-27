@@ -868,7 +868,7 @@ export default function ClientsPage() {
                   {group.length === 0 ? (
                     <p className="text-xs text-slate-400 text-center py-6">Kayıt yok</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                       {group.map((c) => (
                         <div key={c.id} onClick={() => setViewingClient(c)} className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                           <div className="flex justify-between items-start">
@@ -923,7 +923,7 @@ export default function ClientsPage() {
                 Portföyde kayıtlı mülk sahibi yok.
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                 {derivedSellers.map((s) => (
                   <div
                     key={`derived-${s.name}`}
@@ -964,7 +964,7 @@ export default function ClientsPage() {
                 <span className="font-semibold text-sm">Geçmiş Alıcılar</span>
                 <span className="text-xs font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{pastBuyers.length} kişi</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
                 {pastBuyers.map((c) => (
                   <div key={c.id} onClick={() => setViewingClient(c)}
                     className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 opacity-80 hover:opacity-100">

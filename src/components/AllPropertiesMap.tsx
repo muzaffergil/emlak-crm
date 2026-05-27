@@ -117,12 +117,7 @@ function MapContent({ properties, coordMap, onSelect }: {
         L.Marker & { _cm?: boolean };
       m._cm = true;
       m.on("click", () => onSelect(p));
-      m.bindTooltip(
-        `<b style="font-size:12px">${p.title}</b><br/>` +
-        `<span style="color:#64748b;font-size:11px">${[p.neighborhood, p.district].filter(Boolean).join(", ")}</span>` +
-        (p.price ? `<br/><b style="color:#d97706">${p.price.toLocaleString("tr-TR")} ₺</b>` : ""),
-        { direction: "top", offset: [0, -10] }
-      );
+      // bindTooltip kaldırıldı: zoom sırasında tooltip açılıp kapanıyordu
       m.addTo(map);
     };
 

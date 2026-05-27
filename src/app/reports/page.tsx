@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { BarChart2, TrendingUp, Building2, Users, BadgeCheck, Banknote, CheckCircle2, Clock, AlertTriangle, MapPin, PieChart } from "lucide-react";
+import { BarChart2, TrendingUp, Building2, Users, BadgeCheck, Banknote, CheckCircle2, Clock, AlertTriangle, MapPin, PieChart, Filter } from "lucide-react";
 import { propertyStore, clientStore, saleStore, type Property, type Sale, type Client } from "@/lib/storage";
 
 function fmt(n: number) { return n.toLocaleString("tr-TR"); }
@@ -37,11 +37,18 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
   );
 }
 
+const MONTH_NAMES: Record<string, string> = {
+  "01": "Oca", "02": "Şub", "03": "Mar", "04": "Nis",
+  "05": "May", "06": "Haz", "07": "Tem", "08": "Ağu",
+  "09": "Eyl", "10": "Eki", "11": "Kas", "12": "Ara",
+};
+
 export default function ReportsPage() {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sales, setSales]           = useState<Sale[]>([]);
+  const [clients, setClients]       = useState<Client[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [filterYear, setFilterYear] = useState<string>("all");
 
   useEffect(() => {
     Promise.all([propertyStore.getAll(), saleStore.getAll(), clientStore.getAll()])
@@ -49,30 +56,43 @@ export default function ReportsPage() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Satışlardaki yılları bul
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const s of sales) years.add(new Date(s.sold_at).getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  }, [sales]);
+
+  // Seçilen yıla göre satışları filtrele
+  const filteredSales = useMemo(() => {
+    if (filterYear === "all") return sales;
+    return sales.filter(s => new Date(s.sold_at).getFullYear() === parseInt(filterYear));
+  }, [sales, filterYear]);
+
   const stats = useMemo(() => {
     const now = Date.now();
     const active = properties.filter(p => p.status === "musait");
-    const stale = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
+    const stale  = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
     const totalValue = active.reduce((s, p) => s + (p.price ?? 0), 0);
-    const totalCommission = sales.reduce((s, x) => s + (x.buyer_commission ?? 0) + (x.seller_commission ?? 0), 0);
-    const collectedCommission = sales.reduce((s, x) => s + x.buyer_commission_paid + x.seller_commission_paid, 0);
-    const pendingCommission = totalCommission - collectedCommission;
-    const totalSaleValue = sales.reduce((s, x) => s + (x.property_data.price ?? 0), 0);
 
-    // İlçe bazında portföy
+    // Satış metrikleri → filtrelenmiş
+    const totalCommission     = filteredSales.reduce((s, x) => s + (x.buyer_commission ?? 0) + (x.seller_commission ?? 0), 0);
+    const collectedCommission = filteredSales.reduce((s, x) => s + x.buyer_commission_paid + x.seller_commission_paid, 0);
+    const pendingCommission   = totalCommission - collectedCommission;
+    const totalSaleValue      = filteredSales.reduce((s, x) => s + (x.property_data.price ?? 0), 0);
+
+    // İlçe dağılımı — tüm portföy (filtre etkilemez)
     const byDistrict: Record<string, number> = {};
     for (const p of properties) {
       const d = p.district || "Belirtilmemiş";
       byDistrict[d] = (byDistrict[d] ?? 0) + 1;
     }
 
-    // Mülk tipine göre portföy
+    // Tip dağılımı — tüm portföy
     const byType: Record<string, number> = {};
-    for (const p of properties) {
-      byType[p.type] = (byType[p.type] ?? 0) + 1;
-    }
+    for (const p of properties) byType[p.type] = (byType[p.type] ?? 0) + 1;
 
-    // Duruma göre portföy
+    // Durum dağılımı — tüm portföy
     const byStatus = {
       musait:  properties.filter(p => p.status === "musait").length,
       rezerve: properties.filter(p => p.status === "rezerve").length,
@@ -80,83 +100,115 @@ export default function ReportsPage() {
       satildi: properties.filter(p => p.status === "satildi").length,
     };
 
-    // Aylık satışlar (son 6 ay)
+    // Aylık satışlar — filtrelenmiş
     const monthSales: Record<string, { count: number; value: number; commission: number }> = {};
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-
-    for (const s of sales) {
-      const d = new Date(s.sold_at);
-      if (d < sixMonthsAgo) continue;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      if (!monthSales[key]) monthSales[key] = { count: 0, value: 0, commission: 0 };
-      monthSales[key].count++;
-      monthSales[key].value += s.property_data.price ?? 0;
-      monthSales[key].commission += (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+    if (filterYear === "all") {
+      // Tüm zamanlar seçiliyse: son 6 ay
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 5);
+      cutoff.setDate(1);
+      for (const s of filteredSales) {
+        const d = new Date(s.sold_at);
+        if (d < cutoff) continue;
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (!monthSales[key]) monthSales[key] = { count: 0, value: 0, commission: 0 };
+        monthSales[key].count++;
+        monthSales[key].value += s.property_data.price ?? 0;
+        monthSales[key].commission += (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+      }
+    } else {
+      // Belirli yıl seçiliyse: o yılın tüm ayları
+      for (const s of filteredSales) {
+        const d   = new Date(s.sold_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (!monthSales[key]) monthSales[key] = { count: 0, value: 0, commission: 0 };
+        monthSales[key].count++;
+        monthSales[key].value += s.property_data.price ?? 0;
+        monthSales[key].commission += (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+      }
     }
-
     const months = Object.entries(monthSales).sort(([a], [b]) => a.localeCompare(b));
     const maxMonthCount = Math.max(1, ...months.map(([, v]) => v.count));
 
-    // Komisyon durumu
-    const commFull = sales.filter(s => {
-      const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
-      return total > 0 && s.buyer_commission_paid + s.seller_commission_paid >= total;
-    }).length;
-    const commPartial = sales.filter(s => {
-      const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
-      const paid = s.buyer_commission_paid + s.seller_commission_paid;
-      return total > 0 && paid > 0 && paid < total;
-    }).length;
-    const commNone = sales.filter(s => {
-      const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
-      return total > 0 && s.buyer_commission_paid + s.seller_commission_paid === 0;
-    }).length;
+    // Komisyon durumu — filtrelenmiş
+    const commFull    = filteredSales.filter(s => { const t = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0); return t > 0 && s.buyer_commission_paid + s.seller_commission_paid >= t; }).length;
+    const commPartial = filteredSales.filter(s => { const t = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0); const p = s.buyer_commission_paid + s.seller_commission_paid; return t > 0 && p > 0 && p < t; }).length;
+    const commNone    = filteredSales.filter(s => { const t = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0); return t > 0 && s.buyer_commission_paid + s.seller_commission_paid === 0; }).length;
 
     const activeBuyers = clients.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor").length;
-    const pastBuyers = clients.filter(c => c.intent === "satin_aldi").length;
+    const pastBuyers   = clients.filter(c => c.intent === "satin_aldi").length;
 
     return {
       active: active.length, stale: stale.length, totalValue, totalCommission, collectedCommission,
       pendingCommission, totalSaleValue, byDistrict, byType, byStatus, months, maxMonthCount,
       commFull, commPartial, commNone, activeBuyers, pastBuyers,
     };
-  }, [properties, sales, clients]);
+  }, [properties, filteredSales, clients, filterYear]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-400">
-        <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-2 border-slate-200 border-t-amber-500 rounded-full animate-spin mx-auto" />
-          <p className="text-sm">Yükleniyor...</p>
+      <div className="space-y-4">
+        <div className="h-32 bg-white rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white rounded-2xl animate-pulse" />)}
         </div>
+        <div className="h-64 bg-white rounded-2xl animate-pulse" />
       </div>
     );
   }
 
-  const districtEntries = Object.entries(stats.byDistrict).sort(([, a], [, b]) => b - a).slice(0, 8);
-  const typeEntries = Object.entries(stats.byType).sort(([, a], [, b]) => b - a).slice(0, 6);
-  const maxDistrict = Math.max(1, ...districtEntries.map(([, v]) => v));
-  const maxType = Math.max(1, ...typeEntries.map(([, v]) => v));
+  const districtEntries = Object.entries(stats.byDistrict).sort(([, a], [, b]) => b - a);
+  const typeEntries     = Object.entries(stats.byType).sort(([, a], [, b]) => b - a);
+  const maxDistrict     = Math.max(1, ...districtEntries.map(([, v]) => v));
+  const maxType         = Math.max(1, ...typeEntries.map(([, v]) => v));
 
-  const monthNames: Record<string, string> = {
-    "01": "Oca", "02": "Şub", "03": "Mar", "04": "Nis",
-    "05": "May", "06": "Haz", "07": "Tem", "08": "Ağu",
-    "09": "Eyl", "10": "Eki", "11": "Kas", "12": "Ara",
-  };
+  const monthTitle = filterYear === "all" ? "Son 6 Ay" : filterYear;
 
   return (
     <div className="space-y-6">
-      {/* Başlık */}
+      {/* Başlık + Filtre */}
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm shadow-violet-200">
-            <BarChart2 size={17} className="text-white" />
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm shadow-violet-200">
+                <BarChart2 size={17} className="text-white" />
+              </div>
+              Raporlar
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">Portföy, satış ve komisyon istatistikleri</p>
           </div>
-          Raporlar
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">Portföy, satış ve komisyon istatistikleri</p>
+
+          {/* Yıl Filtresi */}
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+            <Filter size={13} className="text-slate-400" />
+            <select
+              value={filterYear}
+              onChange={e => setFilterYear(e.target.value)}
+              className="text-sm text-slate-700 bg-transparent focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="all">Tüm Zamanlar</option>
+              {availableYears.map(y => (
+                <option key={y} value={String(y)}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Aktif filtre etiketi */}
+        {filterYear !== "all" && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs bg-violet-100 text-violet-700 font-semibold px-2.5 py-1 rounded-full">
+              {filterYear} yılı gösteriliyor
+            </span>
+            <button
+              onClick={() => setFilterYear("all")}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Temizle ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Özet Kartlar */}
@@ -168,7 +220,7 @@ export default function ReportsPage() {
           value={stats.totalValue > 0 ? `${fmtM(stats.totalValue)} ₺` : "—"}
           sub="müsait portföyler"
           icon={TrendingUp} gradient="from-emerald-400 to-teal-500" />
-        <StatCard label="Toplam Satış" value={sales.length}
+        <StatCard label="Toplam Satış" value={filteredSales.length}
           sub={stats.totalSaleValue > 0 ? `${fmtM(stats.totalSaleValue)} ₺ ciro` : undefined}
           icon={BadgeCheck} gradient="from-blue-400 to-indigo-500" />
         <StatCard label="Aktif Alıcı" value={stats.activeBuyers}
@@ -183,6 +235,7 @@ export default function ReportsPage() {
             <Banknote size={14} className="text-blue-600" />
           </div>
           <h2 className="font-semibold text-slate-800 text-sm">Komisyon Durumu</h2>
+          {filterYear !== "all" && <span className="ml-auto text-xs text-slate-400">{filterYear}</span>}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
           <div className="px-5 py-4 text-center">
@@ -205,8 +258,6 @@ export default function ReportsPage() {
             </p>
           </div>
         </div>
-
-        {/* Komisyon detay satırları */}
         <div className="px-5 py-4 border-t border-slate-100 flex flex-wrap gap-3">
           <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2">
             <CheckCircle2 size={14} className="text-emerald-600" />
@@ -226,19 +277,20 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Aylık Satışlar */}
+      {/* Aylık Satışlar — max yükseklik + scroll */}
       {stats.months.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
             <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
               <BadgeCheck size={14} className="text-emerald-600" />
             </div>
-            <h2 className="font-semibold text-slate-800 text-sm">Aylık Satışlar (Son 6 Ay)</h2>
+            <h2 className="font-semibold text-slate-800 text-sm">Aylık Satışlar ({monthTitle})</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/40">
+          {/* max-h + overflow-y: tabloda çok satır olursa scroll */}
+          <div className="overflow-auto max-h-72">
+            <table className="w-full text-sm min-w-[420px]">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm">
+                <tr className="border-b border-slate-100">
                   <th className="text-left text-xs font-semibold text-slate-500 px-5 py-3">Ay</th>
                   <th className="text-right text-xs font-semibold text-slate-500 px-5 py-3">Satış Adedi</th>
                   <th className="text-right text-xs font-semibold text-slate-500 px-5 py-3">Ciro</th>
@@ -248,7 +300,7 @@ export default function ReportsPage() {
               <tbody className="divide-y divide-slate-50">
                 {stats.months.map(([key, v]) => {
                   const [year, mon] = key.split("-");
-                  const label = `${monthNames[mon] ?? mon} ${year}`;
+                  const label = `${MONTH_NAMES[mon] ?? mon} ${year}`;
                   return (
                     <tr key={key} className="hover:bg-slate-50/50">
                       <td className="px-5 py-3 font-medium text-slate-700">{label}</td>
@@ -292,15 +344,21 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* İlçe Dağılımı */}
+        {/* İlçe Dağılımı — scroll */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <MapPin size={14} className="text-indigo-600" />
+          <div className="flex items-center justify-between gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <MapPin size={14} className="text-indigo-600" />
+              </div>
+              <h2 className="font-semibold text-slate-800 text-sm">İlçe Bazında Portföy</h2>
             </div>
-            <h2 className="font-semibold text-slate-800 text-sm">İlçe Bazında Portföy</h2>
+            {districtEntries.length > 5 && (
+              <span className="text-xs text-slate-400">{districtEntries.length} ilçe</span>
+            )}
           </div>
-          <div className="px-5 py-4 space-y-3">
+          {/* max-h-56: 5 satır görünür, fazlası scroll ile */}
+          <div className="px-5 py-4 space-y-3 max-h-56 overflow-y-auto">
             {districtEntries.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">Henüz portföy yok.</p>
             ) : districtEntries.map(([d, count]) => (
@@ -309,15 +367,17 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Mülk Tipi Dağılımı */}
+        {/* Mülk Tipi Dağılımı — scroll */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
-              <Building2 size={14} className="text-slate-600" />
+          <div className="flex items-center justify-between gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
+                <Building2 size={14} className="text-slate-600" />
+              </div>
+              <h2 className="font-semibold text-slate-800 text-sm">Mülk Tipi Dağılımı</h2>
             </div>
-            <h2 className="font-semibold text-slate-800 text-sm">Mülk Tipi Dağılımı</h2>
           </div>
-          <div className="px-5 py-4 space-y-3">
+          <div className="px-5 py-4 space-y-3 max-h-56 overflow-y-auto">
             {typeEntries.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">Henüz portföy yok.</p>
             ) : typeEntries.map(([t, count]) => (
@@ -326,7 +386,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Bekleme süresi */}
+        {/* Portföy Sağlığı */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
             <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -344,8 +404,8 @@ export default function ReportsPage() {
               <p className="text-xs text-slate-500 mt-1">30+ gün bekleyen</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-700">{sales.length}</p>
-              <p className="text-xs text-slate-500 mt-1">Toplam satış</p>
+              <p className="text-3xl font-bold text-blue-700">{filteredSales.length}</p>
+              <p className="text-xs text-slate-500 mt-1">{filterYear === "all" ? "Toplam satış" : `${filterYear} satışları`}</p>
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-purple-700">{stats.activeBuyers}</p>
