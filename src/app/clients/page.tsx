@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle, MapPin, TrendingUp, Ruler, DoorOpen, ArrowLeft, RotateCcw } from "lucide-react";
+import { Users, Trash2, Phone, Mail, Plus, X, ChevronDown, Pencil, Home, MessageCircle, MapPin, TrendingUp, Ruler, DoorOpen, ArrowLeft, RotateCcw, PhoneCall, Eye, StickyNote, Clock } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { clientStore, propertyStore, type Client, type Property } from "@/lib/storage";
+import { clientStore, propertyStore, activityStore, type Client, type Property, type Activity } from "@/lib/storage";
+import { runMatchForClient } from "@/lib/autoMatch";
+import { Toast } from "@/components/Toast";
 import { MultiLocationPicker } from "@/components/LocationPicker";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
@@ -118,12 +120,76 @@ function waLink(phone: string) {
   return `https://wa.me/${phone.replace(/\D/g, "").replace(/^0/, "90")}`;
 }
 
-function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
+const ACTIVITY_TYPES: { type: Activity["type"]; label: string; icon: React.ReactNode; color: string }[] = [
+  { type: "whatsapp", label: "WhatsApp", icon: <MessageCircle size={13} />, color: "bg-green-500 hover:bg-green-600 text-white" },
+  { type: "arama",    label: "Arama",    icon: <PhoneCall size={13} />,      color: "bg-blue-500 hover:bg-blue-600 text-white" },
+  { type: "gosterim", label: "Gösterim", icon: <Eye size={13} />,            color: "bg-purple-500 hover:bg-purple-600 text-white" },
+  { type: "not",      label: "Not",      icon: <StickyNote size={13} />,     color: "bg-slate-500 hover:bg-slate-600 text-white" },
+];
+
+const ACTIVITY_ICONS: Record<Activity["type"], React.ReactNode> = {
+  whatsapp: <MessageCircle size={12} className="text-green-500" />,
+  arama:    <PhoneCall size={12} className="text-blue-500" />,
+  gosterim: <Eye size={12} className="text-purple-500" />,
+  not:      <StickyNote size={12} className="text-slate-400" />,
+};
+
+function timeSince(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(mins / 60);
+  const days = Math.floor(hours / 24);
+  if (mins < 2) return "az önce";
+  if (mins < 60) return `${mins} dk önce`;
+  if (hours < 24) return `${hours} sa önce`;
+  if (days < 30) return `${days} gün önce`;
+  return `${Math.floor(days / 30)} ay önce`;
+}
+
+function lastContactColor(lastDate: string | undefined): string {
+  if (!lastDate) return "bg-red-100 text-red-700";
+  const days = (Date.now() - new Date(lastDate).getTime()) / 86400000;
+  if (days < 7) return "bg-green-100 text-green-700";
+  if (days < 30) return "bg-yellow-100 text-yellow-700";
+  return "bg-red-100 text-red-700";
+}
+
+function ClientDetailModal({ client, properties, onClose, onEdit, onDelete }: {
   client: Client;
+  properties: Property[];
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [addingType, setAddingType] = useState<Activity["type"] | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [selectedPropId, setSelectedPropId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    activityStore.getByClient(client.id).then(setActivities).catch(() => {});
+  }, [client.id]);
+
+  async function logActivity() {
+    if (!addingType) return;
+    setSaving(true);
+    try {
+      const act = await activityStore.add(
+        addingType,
+        client.id,
+        selectedPropId ? Number(selectedPropId) : undefined,
+        noteText.trim() || undefined
+      );
+      setActivities(prev => [act, ...prev]);
+      setAddingType(null);
+      setNoteText("");
+      setSelectedPropId("");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
@@ -231,6 +297,71 @@ function ClientDetailModal({ client, onClose, onEdit, onDelete }: {
               <p className="text-sm text-slate-600 leading-relaxed">{client.notes}</p>
             </div>
           )}
+
+          {/* Aktivite Geçmişi */}
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs font-semibold text-slate-400 uppercase mb-2">İletişim Geçmişi</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {ACTIVITY_TYPES.map(at => (
+                <button
+                  key={at.type}
+                  onClick={() => setAddingType(addingType === at.type ? null : at.type)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${addingType === at.type ? at.color + " ring-2 ring-offset-1 ring-current" : at.color}`}
+                >
+                  {at.icon} {at.label}
+                </button>
+              ))}
+            </div>
+
+            {addingType && (
+              <div className="bg-slate-50 rounded-lg p-3 mb-3 space-y-2">
+                <textarea
+                  placeholder="Not ekle (opsiyonel)..."
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  rows={2}
+                  className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-300 resize-none"
+                />
+                <select
+                  value={selectedPropId}
+                  onChange={e => setSelectedPropId(e.target.value)}
+                  className="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-300 bg-white"
+                >
+                  <option value="">Portföy seç (opsiyonel)</option>
+                  {properties.filter(p => p.status === "musait").map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <button onClick={() => setAddingType(null)} className="flex-1 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100">İptal</button>
+                  <button onClick={logActivity} disabled={saving} className="flex-1 py-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium disabled:opacity-60">
+                    {saving ? "Kaydediliyor..." : "Kaydet"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activities.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-3">Henüz iletişim kaydedilmemiş.</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {activities.map(act => {
+                  const prop = act.property_id ? properties.find(p => p.id === act.property_id) : null;
+                  return (
+                    <div key={act.id} className="flex items-start gap-2 text-xs text-slate-600">
+                      <span className="mt-0.5 flex-shrink-0">{ACTIVITY_ICONS[act.type]}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium">{ACTIVITY_TYPES.find(a => a.type === act.type)?.label}</span>
+                        {prop && <span className="text-slate-400"> · {prop.title}</span>}
+                        {act.note && <p className="text-slate-500 truncate">{act.note}</p>}
+                      </div>
+                      <span className="flex-shrink-0 text-slate-400 flex items-center gap-0.5"><Clock size={10} /> {timeSince(act.created_at)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-between gap-2 px-5 py-4 border-t border-slate-100">
@@ -459,10 +590,18 @@ export default function ClientsPage() {
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [viewingSeller, setViewingSeller] = useState<{ name: string; phone?: string; count: number; types: Set<string> } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<Client | null>(null);
+  const [lastContacts, setLastContacts] = useState<Record<number, string>>({});
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([clientStore.getAll(), propertyStore.getAll()])
-      .then(([c, p]) => { setClients(c); setProperties(p); setLoading(false); })
+      .then(([c, p]) => {
+        setClients(c);
+        setProperties(p);
+        setLoading(false);
+        const activeIds = c.filter(cl => ["aliyor", "kiraciyor"].includes(cl.intent)).map(cl => cl.id);
+        activityStore.getLastByClients(activeIds).then(setLastContacts).catch(() => {});
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -486,6 +625,7 @@ export default function ClientsPage() {
   }
 
   async function deleteClient(id: number) {
+    await activityStore.deleteByClient(id);
     await clientStore.delete(id);
     setClients((prev) => prev.filter((c) => c.id !== id));
     setViewingClient(null);
@@ -550,6 +690,11 @@ export default function ClientsPage() {
       } else {
         const newClient = await clientStore.add(data);
         setClients((prev) => [newClient, ...prev]);
+        if (["aliyor", "kiraciyor"].includes(data.intent)) {
+          runMatchForClient(newClient.id).then(count => {
+            if (count > 0) setToast(`${count} portföyle eşleşti!`);
+          }).catch(() => {});
+        }
       }
       cancelForm();
     } finally {
@@ -559,9 +704,11 @@ export default function ClientsPage() {
 
   return (
     <div>
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
       {viewingClient && (
         <ClientDetailModal
           client={viewingClient}
+          properties={properties}
           onClose={() => setViewingClient(null)}
           onEdit={() => { startEdit(viewingClient); setViewingClient(null); }}
           onDelete={() => { setViewingClient(null); setConfirmDeleteId(viewingClient); }}
@@ -597,98 +744,86 @@ export default function ClientsPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 mb-6 shadow-sm ring-1 ring-black/[0.03]">
-          <h2 className="font-semibold text-slate-800 mb-4">{editingId != null ? "Müşteriyi Düzenle" : "Yeni Müşteri / İhtiyaç"}</h2>
-          <form onSubmit={saveClient} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Ad Soyad *</label>
-                <input required value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Telefon</label>
-                <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">E-posta</label>
-                <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) cancelForm(); }}>
+          <div className="bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60 rounded-t-2xl">
+              <h2 className="font-bold text-slate-900">{editingId != null ? "Müşteriyi Düzenle" : "Yeni Müşteri / İhtiyaç"}</h2>
+              <button onClick={cancelForm} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
             </div>
+            <div className="overflow-y-auto px-6 py-4">
+              <form id="client-form" onSubmit={saveClient} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 block mb-1">Ad Soyad *</label>
+                    <input required value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 block mb-1">Telefon</label>
+                    <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 block mb-1">E-posta</label>
+                    <input value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">İşlem Tipi *</label>
-                <select value={form.intent} onChange={(e) => setForm((p) => ({ ...p, intent: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
-                  <option value="aliyor">Satın Alıyor</option>
-                  <option value="kiraciyor">Kiralamak İstiyor</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Oda Sayısı</label>
-                <MultiCheckboxDropdown
-                  placeholder="Seçiniz..."
-                  options={ROOMS_OPTIONS}
-                  selected={form.rooms}
-                  onChange={(v) => setForm((p) => ({ ...p, rooms: v }))}
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 block mb-1">İşlem Tipi *</label>
+                    <select value={form.intent} onChange={(e) => setForm((p) => ({ ...p, intent: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
+                      <option value="aliyor">Satın Alıyor</option>
+                      <option value="kiraciyor">Kiralamak İstiyor</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 block mb-1">Oda Sayısı</label>
+                    <MultiCheckboxDropdown placeholder="Seçiniz..." options={ROOMS_OPTIONS} selected={form.rooms} onChange={(v) => setForm((p) => ({ ...p, rooms: v }))} />
+                  </div>
+                </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Gayrimenkul Tipleri</label>
-              <MultiCheckboxDropdown
-                placeholder="Daire, Villa, Arsa..."
-                options={PROPERTY_TYPE_OPTIONS}
-                selected={form.property_types}
-                onChange={(v) => setForm((p) => ({ ...p, property_types: v }))}
-              />
-            </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Gayrimenkul Tipleri</label>
+                  <MultiCheckboxDropdown placeholder="Daire, Villa, Arsa..." options={PROPERTY_TYPE_OPTIONS} selected={form.property_types} onChange={(v) => setForm((p) => ({ ...p, property_types: v }))} />
+                </div>
 
-            <MultiLocationPicker
-              districts={form.districts}
-              neighborhoods={form.neighborhoods}
-              onDistrictsChange={(v) => setForm((p) => ({ ...p, districts: v }))}
-              onNeighborhoodsChange={(v) => setForm((p) => ({ ...p, neighborhoods: v }))}
-            />
+                <MultiLocationPicker districts={form.districts} neighborhoods={form.neighborhoods}
+                  onDistrictsChange={(v) => setForm((p) => ({ ...p, districts: v }))}
+                  onNeighborhoodsChange={(v) => setForm((p) => ({ ...p, neighborhoods: v }))} />
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[["budget_min","Min Bütçe (₺)"],["budget_max","Max Bütçe (₺)"],["size_min","Min m²"],["size_max","Max m²"]].map(([key, label]) => (
-                <div key={key}>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">{label}</label>
-                  <input type="number" value={form[key as keyof typeof emptyForm] as string}
-                    onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[["budget_min","Min Bütçe (₺)"],["budget_max","Max Bütçe (₺)"],["size_min","Min m²"],["size_max","Max m²"]].map(([key, label]) => (
+                    <div key={key}>
+                      <label className="text-xs font-medium text-slate-600 block mb-1">{label}</label>
+                      <input type="number" value={form[key as keyof typeof emptyForm] as string}
+                        onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">İstenen Özellikler</label>
+                  <MultiCheckboxDropdown placeholder="Balkon, Otopark, Asansör..." options={FEATURE_OPTIONS} selected={form.features_wanted} onChange={(v) => setForm((p) => ({ ...p, features_wanted: v }))} />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Notlar</label>
+                  <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
                 </div>
-              ))}
+              </form>
             </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">İstenen Özellikler</label>
-              <MultiCheckboxDropdown
-                placeholder="Balkon, Otopark, Asansör..."
-                options={FEATURE_OPTIONS}
-                selected={form.features_wanted}
-                onChange={(v) => setForm((p) => ({ ...p, features_wanted: v }))}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Notlar</label>
-              <textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={2}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300" />
-            </div>
-
-            <div className="flex gap-2 justify-end pt-2">
-              <button type="button" onClick={cancelForm} className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">İptal</button>
-              <button type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-60">
+            <div className="flex justify-between gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
+              <button type="button" onClick={cancelForm} className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">İptal</button>
+              <button form="client-form" type="submit" disabled={saving} className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm disabled:opacity-60">
                 {saving ? "Kaydediliyor..." : editingId != null ? "Güncelle" : "Kaydet"}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
@@ -721,9 +856,13 @@ export default function ClientsPage() {
                         <div key={c.id} onClick={() => setViewingClient(c)} className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 className="font-semibold text-slate-800">{c.name}</h3>
                                 <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">{INTENT_LABELS[c.intent] || c.intent}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${lastContactColor(lastContacts[c.id])}`}>
+                                  <Clock size={9} />
+                                  {lastContacts[c.id] ? timeSince(lastContacts[c.id]) : "İletişim yok"}
+                                </span>
                               </div>
                               <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
                                 {c.phone && <span className="flex items-center gap-1"><Phone size={11} />{c.phone}</span>}

@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone, MessageCircle } from "lucide-react";
-import { clientStore, propertyStore, matchStore, type Match, type Property } from "@/lib/storage";
+import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone, MessageCircle, Link, Loader2 } from "lucide-react";
+import { clientStore, propertyStore, matchStore, portalStore, type Match, type Property } from "@/lib/storage";
 import { computeMatches } from "@/lib/claude";
+import { Toast } from "@/components/Toast";
 
 interface RichMatch extends Match {
   client_name: string;
@@ -270,6 +271,8 @@ export default function MatchesPage() {
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<RichMatch | null>(null);
+  const [portalLoading, setPortalLoading] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   async function loadMatches() {
     const [rawMatches, clients, properties] = await Promise.all([
@@ -391,8 +394,28 @@ export default function MatchesPage() {
     return acc;
   }, {});
 
+  async function createPortalLink(clientMatches: RichMatch[]) {
+    const first = clientMatches[0];
+    if (!first) return;
+    const key = first.client_name;
+    setPortalLoading(key);
+    try {
+      const props = clientMatches.map(m => m.property).filter(Boolean) as Property[];
+      const id = await portalStore.create(first.client_name, first.client_phone, props);
+      const base = window.location.origin + (process.env.NEXT_PUBLIC_BASE_PATH || "");
+      const url = `${base}/portal?id=${id}`;
+      await navigator.clipboard.writeText(url);
+      setToast("Portal linki kopyalandı!");
+    } catch {
+      setToast("Portal oluşturulamadı.");
+    } finally {
+      setPortalLoading(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
       <div className="border-b border-slate-200 pb-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
@@ -443,7 +466,18 @@ export default function MatchesPage() {
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{clientMatches.length} eşleşme</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => createPortalLink(clientMatches)}
+                    disabled={portalLoading === clientName}
+                    title="Müşteri portali oluştur ve linki kopyala"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 text-xs font-medium transition-colors disabled:opacity-50"
+                  >
+                    {portalLoading === clientName ? <Loader2 size={12} className="animate-spin" /> : <Link size={12} />}
+                    Portal
+                  </button>
+                  <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{clientMatches.length} eşleşme</span>
+                </div>
               </div>
               <div className="divide-y divide-slate-50">
                 {clientMatches.map((m) => (

@@ -1,7 +1,7 @@
 "use client";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { GAZIANTEP_CENTER, getInitialCoords, geocodeProperty } from "@/lib/mapUtils";
 import type { Property } from "@/lib/storage";
@@ -22,20 +22,28 @@ interface Props {
   onSelect: (p: Property) => void;
 }
 
-// İki koordinatın "aynı nokta" sayılması için eşik (derece)
-const CLUSTER_THRESHOLD = 0.0008;
-
-function coordKey(c: [number, number]): string {
-  return `${Math.round(c[0] / CLUSTER_THRESHOLD)},${Math.round(c[1] / CLUSTER_THRESHOLD)}`;
+// Zoom seviyesine göre cluster eşiği (derece)
+function getThreshold(zoom: number): number {
+  return 0.001 / Math.pow(2, zoom - 12);
 }
 
-// Harita üzerinde marker'ları yöneten bileşen
-function Markers({ coordMap, onSelect }: {
-  coordMap: Map<number, [number, number]>;
-  onSelect: (p: Property) => void;
-  properties: Property[];
-}) {
-  return null; // markers are handled by MapContent
+function coordKey(c: [number, number], threshold: number): string {
+  return `${Math.round(c[0] / threshold)},${Math.round(c[1] / threshold)}`;
+}
+
+// Deterministic jitter: aynı statik koordinata düşen farklı portföyleri haritada ayır
+function jitterCoord(base: [number, number], id: number): [number, number] {
+  const amount = 0.00028; // ~31m spread
+  const angle = (id * 137.508) % 360; // golden angle spiral
+  const r = 0.5 + ((id * 7919) % 1000) / 2000;
+  const rad = (angle * Math.PI) / 180;
+  return [base[0] + Math.cos(rad) * amount * r, base[1] + Math.sin(rad) * amount * r];
+}
+
+function formatPrice(price: number): string {
+  if (price >= 1_000_000) return `${(price / 1_000_000).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}M₺`;
+  if (price >= 1_000) return `${Math.round(price / 1_000)}K₺`;
+  return `${price}₺`;
 }
 
 function MapContent({ properties, coordMap, onSelect }: {
@@ -44,41 +52,52 @@ function MapContent({ properties, coordMap, onSelect }: {
   onSelect: (p: Property) => void;
 }) {
   const map = useMap();
-  const [openCluster, setOpenCluster] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(map.getZoom());
 
   useEffect(() => {
-    // Tüm custom overlay'leri temizle
+    const handler = () => setZoom(map.getZoom());
+    map.on("zoomend", handler);
+    return () => { map.off("zoomend", handler); };
+  }, [map]);
+
+  useEffect(() => {
     map.eachLayer(layer => {
       if ((layer as L.Layer & { _isCustomMarker?: boolean })._isCustomMarker) {
         map.removeLayer(layer);
       }
     });
 
-    // Koordinatları grupla
+    const threshold = getThreshold(zoom);
     const clusters = new Map<string, Property[]>();
+
     for (const p of properties) {
       const c = coordMap.get(p.id);
       if (!c) continue;
-      const key = coordKey(c);
+      const key = coordKey(c, threshold);
       if (!clusters.has(key)) clusters.set(key, []);
       clusters.get(key)!.push(p);
     }
 
-    // Her cluster için marker oluştur
-    clusters.forEach((group, key) => {
+    clusters.forEach((group) => {
       const firstCoord = coordMap.get(group[0].id)!;
       const isSingle = group.length === 1;
 
       if (isSingle) {
         const p = group[0];
         const fill = STATUS_COLOR[p.status] ?? "#94a3b8";
-        const marker = L.circleMarker(firstCoord, {
-          radius: 11,
-          color: "white",
-          fillColor: fill,
-          fillOpacity: 0.92,
-          weight: 2.5,
-        }) as L.CircleMarker & { _isCustomMarker?: boolean };
+        const priceLabel = p.price ? formatPrice(p.price) : "";
+
+        const icon = L.divIcon({
+          html: `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer">
+            <div style="width:14px;height:14px;border-radius:50%;background:${fill};border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>
+            ${priceLabel ? `<div style="background:white;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;color:#1e293b;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.18);margin-top:2px;border:1px solid #e2e8f0">${priceLabel}</div>` : ""}
+          </div>`,
+          iconSize: [60, priceLabel ? 32 : 18],
+          iconAnchor: [30, priceLabel ? 7 : 7],
+          className: "",
+        });
+
+        const marker = L.marker(firstCoord, { icon }) as L.Marker & { _isCustomMarker?: boolean };
         marker._isCustomMarker = true;
         marker.on("click", () => onSelect(p));
         marker.bindTooltip(
@@ -89,7 +108,7 @@ function MapContent({ properties, coordMap, onSelect }: {
         );
         marker.addTo(map);
       } else {
-        // Cluster marker — sayı göster
+        // Cluster — dominant duruma göre renk
         const dominantStatus = group.reduce((acc, p) => {
           acc[p.status] = (acc[p.status] ?? 0) + 1;
           return acc;
@@ -99,23 +118,21 @@ function MapContent({ properties, coordMap, onSelect }: {
 
         const icon = L.divIcon({
           html: `<div style="
-            width:32px;height:32px;border-radius:50%;
-            background:${fill};border:2.5px solid white;
-            box-shadow:0 2px 8px rgba(0,0,0,0.25);
+            width:34px;height:34px;border-radius:50%;
+            background:${fill};border:3px solid white;
+            box-shadow:0 2px 10px rgba(0,0,0,0.3);
             display:flex;align-items:center;justify-content:center;
-            font-weight:700;font-size:13px;color:white;
+            font-weight:800;font-size:13px;color:white;
             cursor:pointer;
           ">${group.length}</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
           className: "",
         });
 
         const marker = L.marker(firstCoord, { icon }) as L.Marker & { _isCustomMarker?: boolean };
         marker._isCustomMarker = true;
         marker.on("click", () => {
-          setOpenCluster(prev => prev === key ? null : key);
-          // Popup ile liste göster
           const listHtml = group.map((p, i) =>
             `<div data-idx="${i}" style="
               padding:6px 8px;cursor:pointer;border-radius:6px;
@@ -132,13 +149,12 @@ function MapContent({ properties, coordMap, onSelect }: {
             .setLatLng(firstCoord)
             .setContent(`
               <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:6px;padding:0 4px">
-                ${group.length} Portföy — Aynı Konum
+                ${group.length} Portföy — Yakın Konum
               </div>
               <div style="overflow-y:auto;max-height:260px">${listHtml}</div>
             `)
             .openOn(map);
 
-          // Liste öğelerine tıklama
           setTimeout(() => {
             const container = popup.getElement();
             if (!container) return;
@@ -147,12 +163,8 @@ function MapContent({ properties, coordMap, onSelect }: {
                 map.closePopup(popup);
                 onSelect(group[i]);
               });
-              (el as HTMLElement).addEventListener("mouseenter", () => {
-                (el as HTMLElement).style.background = "#f8fafc";
-              });
-              (el as HTMLElement).addEventListener("mouseleave", () => {
-                (el as HTMLElement).style.background = "";
-              });
+              (el as HTMLElement).addEventListener("mouseenter", () => { (el as HTMLElement).style.background = "#f8fafc"; });
+              (el as HTMLElement).addEventListener("mouseleave", () => { (el as HTMLElement).style.background = ""; });
             });
           }, 50);
         });
@@ -160,10 +172,8 @@ function MapContent({ properties, coordMap, onSelect }: {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, coordMap, properties]);
+  }, [map, coordMap, properties, zoom]);
 
-  void openCluster; // suppress unused warning
-  void Markers;
   return null;
 }
 
@@ -171,7 +181,8 @@ export default function AllPropertiesMap({ properties, onSelect }: Props) {
   const [coordMap, setCoordMap] = useState<Map<number, [number, number]>>(() => {
     const m = new Map<number, [number, number]>();
     for (const p of properties) {
-      m.set(p.id, getInitialCoords(p));
+      const base = getInitialCoords(p);
+      m.set(p.id, jitterCoord(base, p.id));
     }
     return m;
   });

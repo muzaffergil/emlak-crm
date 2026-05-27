@@ -1,21 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Phone, Banknote, CheckCircle2, ChevronDown } from "lucide-react";
-import { propertyStore, clientStore, matchStore, saleStore, type Property, type Sale } from "@/lib/storage";
+import Link from "next/link";
+import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Banknote, CheckCircle2, ChevronDown, BarChart2, Phone } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, activityStore, type Property, type Sale, type Client } from "@/lib/storage";
 
 function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor }: {
   label: string; value: string | number; sub?: string;
   icon: React.ElementType; iconBg: string; iconColor: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-5 flex items-start gap-4 hover:shadow-md transition-shadow">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-        <Icon size={20} className={iconColor} />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 flex items-start gap-3 hover:shadow-md transition-shadow">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+        <Icon size={18} className={iconColor} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-900 leading-none">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-1.5">{sub}</p>}
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-xl font-bold text-slate-900 leading-tight">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [openPanel, setOpenPanel] = useState<"collected" | "pending" | null>(null);
+  const [needFollowUp, setNeedFollowUp] = useState<Client[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -35,25 +37,34 @@ export default function DashboardPage() {
       clientStore.getAll(),
       matchStore.getAll(),
       saleStore.getAll(),
-    ]).then(([props, clients, mts, sls]) => {
+    ]).then(([props, cls, mts, sls]) => {
       setProperties(props);
-      setBuyers(clients.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor" ).length);
+      const activeClients = cls.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor");
+      setBuyers(activeClients.length);
       setMatches(mts.length);
       setSales(sls);
       setLoading(false);
+      const activeIds = activeClients.map(c => c.id);
+      activityStore.getLastByClients(activeIds).then(lastMap => {
+        const staleClients = activeClients.filter(c => {
+          const last = lastMap[c.id];
+          if (!last) return true;
+          return (Date.now() - new Date(last).getTime()) > 30 * 86400000;
+        });
+        setNeedFollowUp(staleClients.slice(0, 5));
+      }).catch(() => {});
     }).catch(() => setLoading(false));
   }, []);
 
-  const active = properties.filter(p => p.status === "musait");
-  const totalValue = active.reduce((sum, p) => sum + (p.price ?? 0), 0);
-  const sellers = new Set(properties.map(p => p.owner_name).filter(Boolean)).size;
   const now = Date.now();
+  const active = properties.filter(p => p.status === "musait");
+  const totalValue = active.reduce((s, p) => s + (p.price ?? 0), 0);
+  const sellers = new Set(properties.map(p => p.owner_name).filter(Boolean)).size;
   const stale = active.filter(p => Math.floor((now - new Date(p.created_at).getTime()) / 86400000) >= 30);
-  const totalSaleValue = sales.reduce((sum, s) => sum + (s.property_data.price ?? 0), 0);
-  const totalCommission = sales.reduce((sum, s) => sum + (s.buyer_commission ?? 0) + (s.seller_commission ?? 0), 0);
-  const collectedCommission = sales.reduce((sum, s) => sum + s.buyer_commission_paid + s.seller_commission_paid, 0);
+  const totalSaleValue = sales.reduce((s, x) => s + (x.property_data.price ?? 0), 0);
+  const totalCommission = sales.reduce((s, x) => s + (x.buyer_commission ?? 0) + (x.seller_commission ?? 0), 0);
+  const collectedCommission = sales.reduce((s, x) => s + x.buyer_commission_paid + x.seller_commission_paid, 0);
   const pendingCommission = totalCommission - collectedCommission;
-  const recentSales = sales.slice(0, 5);
 
   if (loading) {
     return (
@@ -66,25 +77,38 @@ export default function DashboardPage() {
     );
   }
 
+  const collectedSales = sales.filter(s => s.buyer_commission_paid + s.seller_commission_paid > 0);
+  const pendingSales = sales.filter(s => {
+    const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+    return total > 0 && total > s.buyer_commission_paid + s.seller_commission_paid;
+  });
+  const recentSales = sales.slice(0, 5);
+  const staleTop = stale.slice(0, 4);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Başlık */}
-      <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
-        <p className="text-slate-500 text-sm mt-1">EstateIQ sisteminin özeti</p>
+      <div className="flex items-center justify-between border-b border-slate-200 pb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
+          <p className="text-slate-500 text-sm mt-1">Sistem özeti</p>
+        </div>
+        <Link href="/reports" className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-medium bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
+          <BarChart2 size={14} /> Detaylı Rapor
+        </Link>
       </div>
 
       {/* İstatistik kartları */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard label="Aktif Portföy" value={active.length}
-          sub={`${properties.length} toplam portföy`}
+          sub={`${properties.length} toplam · ${sellers} sahip`}
           icon={Building2} iconBg="bg-amber-50" iconColor="text-amber-600" />
         <StatCard label="Portföy Değeri"
           value={totalValue > 0 ? `${(totalValue / 1_000_000).toFixed(1)}M ₺` : "—"}
           sub="müsait portföylerin toplamı"
           icon={TrendingUp} iconBg="bg-emerald-50" iconColor="text-emerald-600" />
         <StatCard label="Alıcılar" value={buyers}
-          sub={`${sellers} portföy sahibi`}
+          sub="aktif alıcı / kiracı"
           icon={Users} iconBg="bg-blue-50" iconColor="text-blue-600" />
         <StatCard label="Aktif Eşleşme" value={matches}
           sub="toplam eşleşme sayısı"
@@ -100,240 +124,217 @@ export default function DashboardPage() {
       </div>
 
       {/* Komisyon özeti */}
-      {sales.length > 0 && (() => {
-        const collectedSales = sales.filter(s => s.buyer_commission_paid + s.seller_commission_paid > 0);
-        const pendingSales = sales.filter(s => {
-          const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
-          return total > 0 && total > s.buyer_commission_paid + s.seller_commission_paid;
-        });
-        return (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-            <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Banknote size={16} className="text-blue-600" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-slate-800 text-sm">Komisyon Özeti</h2>
-                <p className="text-xs text-slate-500">{sales.length} satış üzerinden hesaplanmıştır</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
-              {/* Toplam */}
-              <div className="px-6 py-5">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Toplam Kazanılan</p>
-                <p className="text-2xl font-bold text-slate-900">{totalCommission.toLocaleString("tr-TR")} ₺</p>
-                <p className="text-xs text-slate-400 mt-1">{sales.length} satıştan</p>
-              </div>
-
-              {/* Tahsil Edilen — tıklanabilir */}
-              <button
-                onClick={() => setOpenPanel(p => p === "collected" ? null : "collected")}
-                className={`px-6 py-5 text-left transition-colors w-full ${openPanel === "collected" ? "bg-emerald-50" : "bg-emerald-50/50 hover:bg-emerald-50"}`}
-              >
-                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <CheckCircle2 size={11} /> Tahsil Edilen
-                  <ChevronDown size={12} className={`ml-auto transition-transform ${openPanel === "collected" ? "rotate-180" : ""}`} />
-                </p>
-                <p className="text-2xl font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
-                <p className="text-xs text-emerald-600 mt-1">{collectedSales.length} satış · detay için tıkla</p>
-              </button>
-
-              {/* Bekleyen — tıklanabilir */}
-              <button
-                onClick={() => setOpenPanel(p => p === "pending" ? null : "pending")}
-                className={`px-6 py-5 text-left transition-colors w-full ${openPanel === "pending" ? (pendingCommission > 0 ? "bg-orange-100/60" : "bg-slate-50") : (pendingCommission > 0 ? "bg-orange-50/50 hover:bg-orange-100/60" : "hover:bg-slate-50")}`}
-              >
-                <p className={`text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
-                  Bekleyen
-                  <ChevronDown size={12} className={`ml-auto transition-transform ${openPanel === "pending" ? "rotate-180" : ""}`} />
-                </p>
-                <p className={`text-2xl font-bold ${pendingCommission > 0 ? "text-orange-700" : "text-slate-300"}`}>
-                  {pendingCommission.toLocaleString("tr-TR")} ₺
-                </p>
-                <p className={`text-xs mt-1 ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>
-                  {pendingSales.length} satış{pendingSales.length > 0 ? " · detay için tıkla" : ""}
-                </p>
-              </button>
-            </div>
-
-            {/* Açılır liste — Tahsil Edilen */}
-            {openPanel === "collected" && (
-              <div className="border-t border-emerald-100">
-                {collectedSales.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">Henüz tahsilat yok.</p>
-                ) : (
-                  <div className="divide-y divide-slate-50">
-                    {collectedSales.map(s => {
-                      const bPaid = s.buyer_commission_paid;
-                      const sPaid = s.seller_commission_paid;
-                      return (
-                        <div key={s.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
-                          <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2 size={13} className="text-emerald-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{s.buyer_name}</p>
-                            <div className="flex gap-3 mt-1 text-xs">
-                              {bPaid > 0 && <span className="text-emerald-700 font-medium">Alıcıdan: {bPaid.toLocaleString("tr-TR")} ₺</span>}
-                              {sPaid > 0 && <span className="text-emerald-700 font-medium">Satıcıdan: {sPaid.toLocaleString("tr-TR")} ₺</span>}
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-emerald-700 flex-shrink-0">
-                            {(bPaid + sPaid).toLocaleString("tr-TR")} ₺
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Açılır liste — Bekleyen */}
-            {openPanel === "pending" && (
-              <div className="border-t border-orange-100">
-                {pendingSales.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">Bekleyen komisyon yok.</p>
-                ) : (
-                  <div className="divide-y divide-slate-50">
-                    {pendingSales.map(s => {
-                      const bTotal = s.buyer_commission ?? 0;
-                      const sTotal = s.seller_commission ?? 0;
-                      const bPending = Math.max(0, bTotal - s.buyer_commission_paid);
-                      const sPending = Math.max(0, sTotal - s.seller_commission_paid);
-                      return (
-                        <div key={s.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
-                          <div className="w-7 h-7 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Clock size={13} className="text-orange-500" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
-                              {s.buyer_commission_paid + s.seller_commission_paid === 0 && (
-                                <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Ödenmedi</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5">{s.buyer_name}</p>
-                            <div className="flex gap-3 mt-1 text-xs">
-                              {bPending > 0 && <span className="text-orange-600 font-medium">Alıcıdan: {bPending.toLocaleString("tr-TR")} ₺</span>}
-                              {sPending > 0 && <span className="text-orange-600 font-medium">Satıcıdan: {sPending.toLocaleString("tr-TR")} ₺</span>}
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-orange-600 flex-shrink-0">
-                            {(bPending + sPending).toLocaleString("tr-TR")} ₺
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Son satışlar */}
+      {sales.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <BadgeCheck size={14} className="text-emerald-600" />
+            <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Banknote size={14} className="text-blue-600" />
             </div>
-            <h2 className="font-semibold text-slate-800 text-sm">Son Satışlar</h2>
+            <div>
+              <h2 className="font-semibold text-slate-800 text-sm">Komisyon Özeti</h2>
+              <p className="text-xs text-slate-500">{sales.length} satış</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            <div className="px-4 py-4 text-center">
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Toplam</p>
+              <p className="text-lg font-bold text-slate-900">{totalCommission.toLocaleString("tr-TR")} ₺</p>
+            </div>
+
+            <button
+              onClick={() => setOpenPanel(p => p === "collected" ? null : "collected")}
+              className={`px-4 py-4 text-center transition-colors ${openPanel === "collected" ? "bg-emerald-50" : "hover:bg-emerald-50/50"}`}
+            >
+              <p className="text-xs font-semibold text-emerald-600 uppercase mb-1 flex items-center justify-center gap-1">
+                <CheckCircle2 size={10} /> Tahsil
+                <ChevronDown size={11} className={`ml-0.5 transition-transform ${openPanel === "collected" ? "rotate-180" : ""}`} />
+              </p>
+              <p className="text-lg font-bold text-emerald-700">{collectedCommission.toLocaleString("tr-TR")} ₺</p>
+              <p className="text-xs text-emerald-600">{collectedSales.length} satış</p>
+            </button>
+
+            <button
+              onClick={() => setOpenPanel(p => p === "pending" ? null : "pending")}
+              className={`px-4 py-4 text-center transition-colors ${openPanel === "pending" ? (pendingCommission > 0 ? "bg-orange-50" : "bg-slate-50") : (pendingCommission > 0 ? "hover:bg-orange-50/50" : "hover:bg-slate-50")}`}
+            >
+              <p className={`text-xs font-semibold uppercase mb-1 flex items-center justify-center gap-1 ${pendingCommission > 0 ? "text-orange-600" : "text-slate-400"}`}>
+                Bekleyen
+                <ChevronDown size={11} className={`ml-0.5 transition-transform ${openPanel === "pending" ? "rotate-180" : ""}`} />
+              </p>
+              <p className={`text-lg font-bold ${pendingCommission > 0 ? "text-orange-700" : "text-slate-300"}`}>
+                {pendingCommission.toLocaleString("tr-TR")} ₺
+              </p>
+              <p className={`text-xs ${pendingCommission > 0 ? "text-orange-500" : "text-slate-400"}`}>{pendingSales.length} satış</p>
+            </button>
+          </div>
+
+          {openPanel === "collected" && (
+            <div className="border-t border-emerald-100 divide-y divide-slate-50">
+              {collectedSales.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">Henüz tahsilat yok.</p>
+              ) : collectedSales.map(s => {
+                const paid = s.buyer_commission_paid + s.seller_commission_paid;
+                return (
+                  <div key={s.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                    <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{s.property_data.title}</p>
+                      <p className="text-xs text-slate-400">{s.buyer_name}</p>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-700 flex-shrink-0">{paid.toLocaleString("tr-TR")} ₺</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {openPanel === "pending" && (
+            <div className="border-t border-orange-100 divide-y divide-slate-50">
+              {pendingSales.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">Bekleyen komisyon yok.</p>
+              ) : pendingSales.map(s => {
+                const bPending = Math.max(0, (s.buyer_commission ?? 0) - s.buyer_commission_paid);
+                const sPending = Math.max(0, (s.seller_commission ?? 0) - s.seller_commission_paid);
+                return (
+                  <div key={s.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                    <Clock size={14} className="text-orange-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-slate-800 truncate">{s.property_data.title}</p>
+                        {s.buyer_commission_paid + s.seller_commission_paid === 0 && (
+                          <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">Ödenmedi</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400">{s.buyer_name}</p>
+                    </div>
+                    <span className="text-sm font-bold text-orange-600 flex-shrink-0">{(bPending + sPending).toLocaleString("tr-TR")} ₺</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Son satışlar */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
+            <div className="flex items-center gap-2">
+              <BadgeCheck size={15} className="text-emerald-600" />
+              <h2 className="font-semibold text-slate-800 text-sm">Son Satışlar</h2>
+            </div>
+            <Link href="/sales" className="text-xs text-amber-600 hover:text-amber-700 font-medium">Tümü →</Link>
           </div>
           {recentSales.length === 0 ? (
-            <div className="py-12 text-center">
-              <BadgeCheck size={32} className="mx-auto text-slate-200 mb-2" />
+            <div className="py-8 text-center">
               <p className="text-sm text-slate-400">Henüz satış yok.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-50">
               {recentSales.map(s => (
-                <div key={s.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <BadgeCheck size={14} className="text-emerald-700" />
+                <div key={s.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                  <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <BadgeCheck size={13} className="text-emerald-700" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{s.property_data.title}</p>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                      <MapPin size={10} />
-                      {[s.property_data.neighborhood, s.property_data.district].filter(Boolean).join(", ")}
+                    <p className="text-sm font-medium text-slate-800 truncate">{s.property_data.title}</p>
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <MapPin size={9} /> {[s.property_data.neighborhood, s.property_data.district].filter(Boolean).join(", ")}
+                      <span className="mx-1">·</span>{s.buyer_name}
                     </p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs font-bold text-emerald-700">
-                        {s.property_data.price ? `${s.property_data.price.toLocaleString("tr-TR")} ₺` : "—"}
-                      </span>
-                      <span className="text-xs text-slate-400">{s.buyer_name}</span>
-                    </div>
                   </div>
-                  <span className="text-xs text-slate-400 flex-shrink-0 font-medium">
-                    {new Date(s.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}
-                  </span>
+                  <div className="text-right flex-shrink-0">
+                    {s.property_data.price && <p className="text-xs font-bold text-emerald-700">{(s.property_data.price / 1_000_000).toFixed(1)}M ₺</p>}
+                    <p className="text-xs text-slate-400">{new Date(s.sold_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</p>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* 30+ gün bekleyen portföyler */}
+        {/* Uzun süre bekleyen */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Clock size={14} className="text-orange-600" />
-              </div>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/60">
+            <div className="flex items-center gap-2">
+              <Clock size={15} className="text-orange-600" />
               <h2 className="font-semibold text-slate-800 text-sm">Uzun Süre Bekleyen</h2>
+              <span className="text-xs font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">30+ gün</span>
             </div>
-            <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">30+ gün</span>
+            <Link href="/" className="text-xs text-amber-600 hover:text-amber-700 font-medium">Portföy →</Link>
           </div>
-          {stale.length === 0 ? (
-            <div className="py-12 text-center">
-              <CheckCircle2 size={32} className="mx-auto text-slate-200 mb-2" />
+          {staleTop.length === 0 ? (
+            <div className="py-8 text-center">
+              <CheckCircle2 size={28} className="mx-auto text-slate-200 mb-2" />
               <p className="text-sm text-slate-400">Tüm portföyler güncel.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-50">
-              {stale.slice(0, 5).map(p => {
+              {staleTop.map(p => {
                 const ageDays = Math.floor((now - new Date(p.created_at).getTime()) / 86400000);
                 return (
-                  <div key={p.id} className="px-5 py-3.5 flex items-start gap-3 hover:bg-slate-50/50 transition-colors">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Clock size={14} className="text-orange-600" />
+                  <div key={p.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                    <div className="w-7 h-7 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Clock size={13} className="text-orange-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{p.title}</p>
-                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} />
-                        {[p.neighborhood, p.district].filter(Boolean).join(", ")}
-                      </p>
-                      {p.price && (
-                        <p className="text-xs font-bold text-slate-700 mt-0.5">
-                          {p.price.toLocaleString("tr-TR")} ₺
-                        </p>
-                      )}
+                      <p className="text-sm font-medium text-slate-800 truncate">{p.title}</p>
+                      <p className="text-xs text-slate-400">{[p.neighborhood, p.district].filter(Boolean).join(", ")} {p.price ? `· ${(p.price / 1_000_000).toFixed(1)}M ₺` : ""}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className="text-sm font-bold text-orange-600">{ageDays}g</span>
                       {p.owner_phone && (
-                        <a href={`tel:${p.owner_phone}`} onClick={e => e.stopPropagation()}
-                          className="flex items-center gap-0.5 justify-end text-xs text-slate-400 hover:text-slate-600 mt-0.5">
-                          <Phone size={9} /> {p.owner_phone}
+                        <a href={`tel:${p.owner_phone}`} className="flex items-center justify-end gap-0.5 text-xs text-slate-400 hover:text-slate-600 mt-0.5">
+                          <Phone size={9} /> ara
                         </a>
                       )}
                     </div>
                   </div>
                 );
               })}
-              {stale.length > 5 && (
-                <p className="text-xs text-slate-400 text-center py-3 font-medium">+{stale.length - 5} daha</p>
+              {stale.length > 4 && (
+                <p className="text-xs text-slate-400 text-center py-2.5 font-medium">+{stale.length - 4} daha</p>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Takip gereken alıcılar */}
+      {needFollowUp.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-red-50/60">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={15} className="text-red-500" />
+              <h2 className="font-semibold text-slate-800 text-sm">Takip Gerekiyor</h2>
+              <span className="text-xs font-medium text-red-500 bg-red-100 px-1.5 py-0.5 rounded-full">30+ gün iletişim yok</span>
+            </div>
+            <Link href="/clients" className="text-xs text-amber-600 hover:text-amber-700 font-medium">Müşteriler →</Link>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {needFollowUp.map(c => (
+              <div key={c.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                <div className="w-7 h-7 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 font-bold text-xs">{c.name.charAt(0)}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">{c.name}</p>
+                  {c.phone && <p className="text-xs text-slate-400 flex items-center gap-1"><Phone size={9} />{c.phone}</p>}
+                </div>
+                {c.phone && (
+                  <a href={`https://wa.me/${c.phone.replace(/\D/g, "").replace(/^0/, "90")}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors flex-shrink-0">
+                    <Phone size={10} /> WA
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

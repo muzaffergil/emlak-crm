@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard } from "lucide-react";
+import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2 } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuth } from "@/components/AuthProvider";
@@ -15,6 +15,7 @@ const links = [
   { href: "/matches", label: "Eşleşmeler", icon: Zap },
   { href: "/sales", label: "Satışlar", icon: BadgeCheck },
   { href: "/map", label: "Harita", icon: Map },
+  { href: "/reports", label: "Raporlar", icon: BarChart2 },
 ];
 
 async function exportData() {
@@ -97,7 +98,7 @@ export default function Navbar() {
           onCancel={() => setPendingFile(null)}
         />
       )}
-      <nav className="sticky top-0 z-40 bg-slate-900 border-b border-white/[0.06] shadow-xl">
+      <nav className="sticky top-0 z-40 bg-slate-900 border-b border-white/[0.06] shadow-xl relative">
         <div className="max-w-7xl mx-auto px-4">
           {/* Ana satır */}
           <div className="flex items-center h-15 gap-2" style={{ height: "60px" }}>
@@ -164,46 +165,48 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobil açılır menü */}
+          {/* Mobil açılır menü — absolute overlay, sayfayı aşağı itmez */}
           {menuOpen && (
-            <div className="md:hidden border-t border-white/[0.06] py-2 flex flex-col gap-0.5">
-              {links.map(({ href, label, icon: Icon }) => {
-                const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      active
-                        ? "bg-amber-500 text-white"
-                        : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
-                    }`}
+            <div className="md:hidden absolute left-0 right-0 top-full bg-slate-900 border-t border-white/[0.06] py-2 flex flex-col gap-0.5 shadow-2xl z-50">
+              <div className="max-w-7xl mx-auto px-4 w-full flex flex-col gap-0.5">
+                {links.map(({ href, label, icon: Icon }) => {
+                  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                        active
+                          ? "bg-amber-500 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      <Icon size={17} />
+                      {label}
+                    </Link>
+                  );
+                })}
+                <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
+                  <button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
                   >
-                    <Icon size={17} />
-                    {label}
-                  </Link>
-                );
-              })}
-              <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
-                <button
-                  onClick={handleExport}
-                  disabled={exporting}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
-                >
-                  {exporting ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
-                  Dışa Aktar
-                </button>
-                <button
-                  onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
-                  disabled={importing}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
-                >
-                  {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
-                  İçe Aktar
-                </button>
-                <div className="px-2 pt-1">
-                  <UserMenu />
+                    {exporting ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+                    Dışa Aktar
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); fileRef.current?.click(); }}
+                    disabled={importing}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                  >
+                    {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
+                    İçe Aktar
+                  </button>
+                  <div className="px-2 pt-1 pb-2">
+                    <UserMenu />
+                  </div>
                 </div>
               </div>
             </div>

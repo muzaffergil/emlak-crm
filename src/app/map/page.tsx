@@ -44,7 +44,7 @@ export default function MapPage() {
 
   return (
     /* Harita sayfasında navbar dışında tam ekran */
-    <div className="-mx-4 -my-6 relative" style={{ height: "calc(100vh - 56px)" }}>
+    <div className="-mx-4 -my-4 md:-my-6 relative" style={{ height: "calc(100vh - 61px)" }}>
 
       {/* Harita */}
       {loading ? (

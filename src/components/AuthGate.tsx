@@ -9,13 +9,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublic = pathname === "/login" || pathname === "/p" || pathname === "/portal";
+
   useEffect(() => {
-    if (!loading && !user && pathname !== "/login") {
+    if (!loading && !user && !isPublic) {
       router.replace("/login");
     }
-  }, [loading, user, pathname, router]);
+  }, [loading, user, isPublic, pathname, router]);
 
-  if (loading) {
+  if (loading && !isPublic) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-slate-50 z-50">
         <div className="flex flex-col items-center gap-3">
@@ -29,7 +31,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && pathname !== "/login") {
+  if (!user && !isPublic) {
     return null;
   }
 

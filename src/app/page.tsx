@@ -2,13 +2,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History } from "lucide-react";
-import { propertyStore, clientStore, matchStore, saleStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, shareStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
+import { Toast } from "@/components/Toast";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ExcelTemplateModal from "@/components/ExcelTemplateModal";
 import PhotoManager from "@/components/PhotoManager";
 import { parsePropertyExcel, filterDuplicates } from "@/lib/excelImport";
+import AddPropertyModal from "@/components/AddPropertyModal";
 
 const PropertyLocationMap = dynamic(() => import("@/components/PropertyLocationMap"), {
   ssr: false,
@@ -298,8 +300,25 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const [sharing, setSharing] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
   const st = STATUS_LABELS[property.status] || { label: property.status, color: "bg-slate-100 text-slate-700" };
   const hasDetails = property.size || property.rooms || property.floor != null;
+
+  async function createShareLink() {
+    setSharing(true);
+    try {
+      const id = await shareStore.create(property);
+      const base = window.location.origin + (process.env.NEXT_PUBLIC_BASE_PATH || "");
+      const url = `${base}/p?id=${id}`;
+      await navigator.clipboard.writeText(url);
+      setShareToast("Link kopyalandı!");
+    } catch {
+      setShareToast("Link oluşturulamadı.");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -448,12 +467,19 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
             className="flex items-center gap-1.5 px-4 py-2.5 border border-red-200 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
             <Trash2 size={14} /> Sil
           </button>
-          <button onClick={onEdit}
-            className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-xl text-sm font-semibold transition-all shadow-sm">
-            <Pencil size={14} /> Düzenle
-          </button>
+          <div className="flex gap-2">
+            <button onClick={createShareLink} disabled={sharing}
+              className="flex items-center gap-1.5 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50">
+              {sharing ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} Link
+            </button>
+            <button onClick={onEdit}
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white rounded-xl text-sm font-semibold transition-all shadow-sm">
+              <Pencil size={14} /> Düzenle
+            </button>
+          </div>
         </div>
       </div>
+      {shareToast && <Toast message={shareToast} onDone={() => setShareToast(null)} />}
     </div>
   );
 }
@@ -751,6 +777,7 @@ export default function PortfolioPage() {
   const [importResult, setImportResult] = useState<{ added: number; dup: number; skipped: number } | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [showExcelModal, setShowExcelModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const excelFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -841,6 +868,12 @@ export default function PortfolioPage() {
         />
       )}
       {showExcelModal && <ExcelTemplateModal onClose={() => setShowExcelModal(false)} />}
+      {showAddModal && (
+        <AddPropertyModal
+          onClose={() => setShowAddModal(false)}
+          onAdded={p => setProperties(prev => [p, ...prev])}
+        />
+      )}
       {confirmDelete && (
         <ConfirmDialog
           message={`"${confirmDelete.title}" portföyünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
@@ -884,9 +917,11 @@ export default function PortfolioPage() {
             {importLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
             Excel'den Aktar
           </button>
-          <a href="add-property" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
-            + Portföy Ekle
-          </a>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
+            <Plus size={15} /> Portföy Ekle
+          </button>
         </div>
       </div>
 
@@ -1002,7 +1037,7 @@ export default function PortfolioPage() {
           <Home size={48} className="mx-auto mb-3 opacity-30" />
           <p>{properties.length === 0 ? "Portföyde henüz gayrimenkul yok." : "Filtreye uyan kayıt bulunamadı."}</p>
           {properties.length === 0 && (
-            <a href="add-property" className="text-amber-500 hover:underline text-sm mt-2 inline-block">Hemen ekleyin</a>
+            <button onClick={() => setShowAddModal(true)} className="text-amber-500 hover:underline text-sm mt-2 inline-block">Hemen ekleyin</button>
           )}
         </div>
       ) : (
