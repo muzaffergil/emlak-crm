@@ -1,22 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Banknote, CheckCircle2, ChevronDown, BarChart2, Phone } from "lucide-react";
+import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Banknote, CheckCircle2, ChevronDown, BarChart2, Phone, LayoutDashboard } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, activityStore, type Property, type Sale, type Client } from "@/lib/storage";
 
-function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor }: {
+function StatCard({ label, value, sub, icon: Icon, gradient }: {
   label: string; value: string | number; sub?: string;
-  icon: React.ElementType; iconBg: string; iconColor: string;
+  icon: React.ElementType; gradient: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 flex items-start gap-3 hover:shadow-md transition-shadow">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-        <Icon size={18} className={iconColor} />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 flex items-start gap-3.5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
+        <Icon size={19} className="text-white" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
         <p className="text-xl font-bold text-slate-900 leading-tight">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-slate-400 mt-0.5 leading-snug">{sub}</p>}
       </div>
     </div>
   );
@@ -68,10 +68,18 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-slate-400">
-        <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-2 border-slate-200 border-t-amber-500 rounded-full animate-spin mx-auto" />
-          <p className="text-sm">Yükleniyor...</p>
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-slate-200 rounded-xl animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 flex items-start gap-3.5 border border-slate-100">
+              <div className="w-11 h-11 rounded-xl bg-slate-100 animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-slate-100 rounded-full animate-pulse w-2/3" />
+                <div className="h-5 bg-slate-100 rounded-full animate-pulse w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -90,10 +98,15 @@ export default function DashboardPage() {
       {/* Başlık */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
-          <p className="text-slate-500 text-sm mt-1">Sistem özeti</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm shadow-violet-200">
+              <LayoutDashboard size={17} className="text-white" />
+            </div>
+            Genel Bakış
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Güncel sistem özeti</p>
         </div>
-        <Link href="/reports" className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-medium bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
+        <Link href="/reports" className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-700 font-semibold bg-violet-50 hover:bg-violet-100 px-4 py-2 rounded-xl transition-colors border border-violet-100">
           <BarChart2 size={14} /> Detaylı Rapor
         </Link>
       </div>
@@ -102,25 +115,24 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard label="Aktif Portföy" value={active.length}
           sub={`${properties.length} toplam · ${sellers} sahip`}
-          icon={Building2} iconBg="bg-amber-50" iconColor="text-amber-600" />
+          icon={Building2} gradient="from-amber-400 to-amber-600" />
         <StatCard label="Portföy Değeri"
           value={totalValue > 0 ? `${(totalValue / 1_000_000).toFixed(1)}M ₺` : "—"}
           sub="müsait portföylerin toplamı"
-          icon={TrendingUp} iconBg="bg-emerald-50" iconColor="text-emerald-600" />
+          icon={TrendingUp} gradient="from-emerald-400 to-teal-500" />
         <StatCard label="Alıcılar" value={buyers}
           sub="aktif alıcı / kiracı"
-          icon={Users} iconBg="bg-blue-50" iconColor="text-blue-600" />
+          icon={Users} gradient="from-blue-400 to-indigo-500" />
         <StatCard label="Aktif Eşleşme" value={matches}
           sub="toplam eşleşme sayısı"
-          icon={Zap} iconBg="bg-violet-50" iconColor="text-violet-600" />
+          icon={Zap} gradient="from-violet-400 to-purple-500" />
         <StatCard label="Gerçekleşen Satış" value={sales.length}
           sub={totalSaleValue > 0 ? `${(totalSaleValue / 1_000_000).toFixed(1)}M ₺ ciro` : undefined}
-          icon={BadgeCheck} iconBg="bg-slate-100" iconColor="text-slate-600" />
+          icon={BadgeCheck} gradient="from-slate-500 to-slate-600" />
         <StatCard label="30+ Gün Bekleyen" value={stale.length}
           sub="fiyat güncellemesi gerekebilir"
           icon={AlertTriangle}
-          iconBg={stale.length > 0 ? "bg-orange-50" : "bg-slate-100"}
-          iconColor={stale.length > 0 ? "text-orange-600" : "text-slate-400"} />
+          gradient={stale.length > 0 ? "from-orange-400 to-red-500" : "from-slate-400 to-slate-500"} />
       </div>
 
       {/* Komisyon özeti */}

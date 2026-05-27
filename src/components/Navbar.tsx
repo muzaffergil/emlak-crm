@@ -98,7 +98,7 @@ export default function Navbar() {
           onCancel={() => setPendingFile(null)}
         />
       )}
-      <nav className="sticky top-0 z-40 bg-slate-900 border-b border-white/[0.06] shadow-xl relative">
+      <nav className="sticky top-0 z-40 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-white/[0.07] shadow-2xl relative" style={{ boxShadow: "0 4px 24px -4px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset" }}>
         <div className="max-w-7xl mx-auto px-4">
           {/* Ana satır */}
           <div className="flex items-center h-15 gap-2" style={{ height: "60px" }}>

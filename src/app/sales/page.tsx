@@ -339,10 +339,13 @@ export default function SalesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <BadgeCheck size={24} className="text-green-600" /> Gerçekleşen Satışlar
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-200">
+              <BadgeCheck size={17} className="text-white" />
+            </div>
+            Satışlar
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             {loading ? "Yükleniyor..." : `${sales.length} tamamlanmış satış`}
@@ -355,12 +358,25 @@ export default function SalesPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-slate-400"><p>Yükleniyor...</p></div>
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-slate-100 rounded-full animate-pulse w-1/2" />
+                <div className="h-3 bg-slate-100 rounded-full animate-pulse w-1/3" />
+              </div>
+              <div className="h-5 w-24 bg-slate-100 rounded-full animate-pulse" />
+            </div>
+          ))}
+        </div>
       ) : sales.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
-          <BadgeCheck size={48} className="mx-auto mb-3 opacity-20" />
-          <p>Henüz tamamlanmış satış yok.</p>
-          <p className="text-sm mt-1">Portföy kartındaki ✓ simgesiyle satış kaydı oluşturun.</p>
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-teal-50 rounded-3xl flex items-center justify-center mb-4">
+            <BadgeCheck size={36} className="text-emerald-400" />
+          </div>
+          <p className="font-semibold text-slate-600 text-lg mb-1">Henüz satış yok</p>
+          <p className="text-sm text-center">Portföy kartındaki ✓ simgesiyle satış kaydı oluşturun.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

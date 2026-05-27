@@ -728,17 +728,17 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between mb-5 border-b border-slate-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users size={16} className="text-blue-600" />
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm shadow-blue-200">
+              <Users size={17} className="text-white" />
             </div>
             Müşteriler
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            {loading ? "Yükleniyor..." : `${clients.length} müşteri`}
+            {loading ? "Yükleniyor..." : `${clients.length} müşteri · ${derivedSellers.length} portföy sahibi`}
           </p>
         </div>
         <button onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setShowForm(!showForm); }}
-          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
+          className="flex items-center gap-1.5 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm shadow-amber-200">
           <Plus size={15} /> Müşteri Ekle
         </button>
       </div>
@@ -828,13 +828,30 @@ export default function ClientsPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-slate-400">
-          <p>Müşteriler yükleniyor...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, col) => (
+            <div key={col} className="space-y-3">
+              <div className="h-10 bg-white rounded-xl animate-pulse border border-slate-100" />
+              {[...Array(3)].map((__, i) => (
+                <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 space-y-2">
+                  <div className="h-4 bg-slate-100 rounded-full animate-pulse w-2/3" />
+                  <div className="h-3 bg-slate-100 rounded-full animate-pulse w-1/2" />
+                  <div className="flex gap-1.5 mt-1">
+                    <div className="h-5 w-16 bg-slate-100 rounded-full animate-pulse" />
+                    <div className="h-5 w-12 bg-slate-100 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ) : clients.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
-          <Users size={48} className="mx-auto mb-3 opacity-30" />
-          <p>Henüz müşteri eklenmemiş.</p>
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-3xl flex items-center justify-center mb-4">
+            <Users size={36} className="text-blue-400" />
+          </div>
+          <p className="font-semibold text-slate-600 text-lg">Henüz müşteri yok</p>
+          <p className="text-sm mt-1 text-slate-400">İlk müşterinizi ekleyerek başlayın.</p>
         </div>
       ) : (
         <><div className="grid grid-cols-1 md:grid-cols-2 gap-6">

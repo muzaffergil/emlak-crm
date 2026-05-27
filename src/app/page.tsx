@@ -893,8 +893,8 @@ export default function PortfolioPage() {
       <div className="flex items-center justify-between mb-5 border-b border-slate-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
-              <Home size={16} className="text-amber-600" />
+            <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-sm shadow-amber-200">
+              <Home size={17} className="text-white" />
             </div>
             Portföy
           </h1>
@@ -905,21 +905,21 @@ export default function PortfolioPage() {
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
             onClick={() => setShowExcelModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-500 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm transition-all"
           >
-            <FileSpreadsheet size={14} /> Excel Şablonu
+            <FileSpreadsheet size={14} /> Şablon
           </button>
           <button
             onClick={() => excelFileRef.current?.click()}
             disabled={importLoading}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-slate-500 border border-slate-200 rounded-xl hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
           >
             {importLoading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            Excel'den Aktar
+            Excel
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm">
+            className="flex items-center gap-1.5 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm shadow-amber-200">
             <Plus size={15} /> Portföy Ekle
           </button>
         </div>
@@ -1029,15 +1029,34 @@ export default function PortfolioPage() {
 
       {/* Liste */}
       {loading ? (
-        <div className="text-center py-12 text-slate-400">
-          <p>Veriler yükleniyor...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+              <div className="h-44 bg-slate-100 animate-pulse" />
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-slate-100 rounded-full animate-pulse w-3/4" />
+                <div className="flex gap-2">
+                  <div className="h-5 bg-slate-100 rounded-full animate-pulse w-16" />
+                  <div className="h-5 bg-slate-100 rounded-full animate-pulse w-12" />
+                </div>
+                <div className="h-6 bg-slate-100 rounded-full animate-pulse w-1/2" />
+                <div className="h-3 bg-slate-100 rounded-full animate-pulse w-2/3" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">
-          <Home size={48} className="mx-auto mb-3 opacity-30" />
-          <p>{properties.length === 0 ? "Portföyde henüz gayrimenkul yok." : "Filtreye uyan kayıt bulunamadı."}</p>
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-50 rounded-3xl flex items-center justify-center mb-4 shadow-inner">
+            <Home size={36} className="text-amber-400" />
+          </div>
+          <p className="font-semibold text-slate-600 text-lg">{properties.length === 0 ? "Henüz portföy yok" : "Sonuç bulunamadı"}</p>
+          <p className="text-sm mt-1 text-slate-400">{properties.length === 0 ? "İlk portföyünüzü ekleyerek başlayın." : "Farklı filtreler deneyin."}</p>
           {properties.length === 0 && (
-            <button onClick={() => setShowAddModal(true)} className="text-amber-500 hover:underline text-sm mt-2 inline-block">Hemen ekleyin</button>
+            <button onClick={() => setShowAddModal(true)}
+              className="mt-4 flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-amber-200 transition-all">
+              <Plus size={15} /> Portföy Ekle
+            </button>
           )}
         </div>
       ) : (
@@ -1048,72 +1067,113 @@ export default function PortfolioPage() {
             const isOld = ageDays >= 30;
             const shareMsg = buildShareMessage(p);
             const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+            const hasPhoto = p.photos && p.photos.length > 0;
+
+            const TYPE_GRADIENTS: Record<string, string> = {
+              daire: "from-blue-400 to-indigo-500",
+              villa: "from-emerald-400 to-teal-500",
+              arsa: "from-amber-400 to-orange-500",
+              dükkan: "from-purple-400 to-violet-500",
+              ofis: "from-sky-400 to-cyan-500",
+              depo: "from-slate-400 to-slate-500",
+              bina: "from-rose-400 to-pink-500",
+              "müstakil ev": "from-green-400 to-emerald-500",
+              default: "from-amber-400 to-amber-600",
+            };
+            const gradient = TYPE_GRADIENTS[p.type] ?? TYPE_GRADIENTS.default;
+
             return (
               <div key={p.id} onClick={() => setViewing(p)}
-                className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-5 cursor-pointer">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-slate-900 text-sm leading-snug pr-2">{p.title}</h3>
-                  <div className="flex items-center gap-0.5 ml-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href={shareHref} target="_blank" rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-green-600 hover:bg-green-50 transition-colors">
-                      <Share2 size={13} />
-                    </a>
-                    <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
-                      <CheckCircle2 size={13} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setEditing(p); }}
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-amber-500 hover:bg-amber-50 transition-colors">
-                      <Pencil size={13} />
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-                      <Trash2 size={13} />
-                    </button>
+                className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden">
+
+                {/* Fotoğraf ya da gradient placeholder */}
+                <div className="relative h-44 overflow-hidden">
+                  {hasPhoto ? (
+                    <img src={p.photos![0]} alt={p.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+                      <Home size={40} className="text-white/30" />
+                    </div>
+                  )}
+                  {/* Durum rozeti */}
+                  <div className="absolute top-3 left-3">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm ${st.color} shadow-sm`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{st.label}
+                    </span>
+                  </div>
+                  {/* Yaşlı badge */}
+                  {isOld && (
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/90 text-white backdrop-blur-sm shadow-sm">
+                        <Clock size={9} /> {ageDays}g
+                      </span>
+                    </div>
+                  )}
+                  {/* Hover aksiyonlar */}
+                  <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                    <div className="flex gap-1 bg-black/40 backdrop-blur-sm rounded-xl p-1">
+                      <a href={shareHref} target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
+                        className="p-1.5 rounded-lg text-white/80 hover:text-green-400 hover:bg-white/10 transition-colors">
+                        <Share2 size={13} />
+                      </a>
+                      <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
+                        className="p-1.5 rounded-lg text-white/80 hover:text-emerald-400 hover:bg-white/10 transition-colors">
+                        <CheckCircle2 size={13} />
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); setEditing(p); }}
+                        className="p-1.5 rounded-lg text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors">
+                        <Pencil size={13} />
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
+                        className="p-1.5 rounded-lg text-white/80 hover:text-red-400 hover:bg-white/10 transition-colors">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 mb-3.5 flex-wrap">
-                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">{p.type}</span>
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${st.color}`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 flex-shrink-0" />{st.label}
-                  </span>
-                  <span className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
-                    {p.price_type === "kira" ? "Kiralık" : "Satılık"}
-                  </span>
-                  {isOld && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">
-                      <Clock size={9} /> {ageDays}g
+
+                {/* İçerik */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-slate-900 text-sm leading-snug">{p.title}</h3>
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 flex-shrink-0">
+                      {p.price_type === "kira" ? "Kira" : "Satış"}
                     </span>
+                  </div>
+
+                  {p.price && (
+                    <p className="text-xl font-bold text-slate-900 mb-2 leading-tight">
+                      {p.price.toLocaleString("tr-TR")} ₺
+                      {p.price_type === "kira" && <span className="text-sm font-normal text-slate-400">/ay</span>}
+                    </p>
                   )}
-                </div>
-                <div className="space-y-1.5 text-xs text-slate-500">
-                  <div className="flex items-center gap-1.5">
+
+                  <div className="flex items-center gap-1 text-xs text-slate-400 mb-3">
                     <MapPin size={11} className="text-slate-300 flex-shrink-0" />
                     {[p.neighborhood, p.district, p.city].filter(Boolean).join(", ")}
                   </div>
-                  {p.price && (
-                    <div className="flex items-center gap-1.5">
-                      <TrendingUp size={11} className="text-slate-300 flex-shrink-0" />
-                      <span className="font-bold text-slate-900 text-sm">{p.price.toLocaleString("tr-TR")} ₺</span>
-                      {p.price_type === "kira" && <span className="text-slate-400">/ay</span>}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    {p.size && <span className="flex items-center gap-1"><Ruler size={11} className="text-slate-300" /> {p.size} m²</span>}
-                    {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={11} className="text-slate-300" /> {p.rooms}</span>}
+
+                  <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full capitalize font-medium">{p.type}</span>
+                    {p.size && <span className="flex items-center gap-1"><Ruler size={10} className="text-slate-400" /> {p.size} m²</span>}
+                    {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={10} className="text-slate-400" /> {p.rooms}</span>}
                     {p.floor != null && <span>{p.floor}{p.total_floors ? `/${p.total_floors}` : ""}. kat</span>}
                   </div>
+
+                  {p.features.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-3 border-t border-slate-50">
+                      {p.features.slice(0, 3).map(f => (
+                        <span key={f} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg font-medium">{f}</span>
+                      ))}
+                      {p.features.length > 3 && <span className="text-xs text-slate-400 font-medium">+{p.features.length - 3}</span>}
+                    </div>
+                  )}
+                  {p.description && !p.features.length && (
+                    <p className="text-xs text-slate-400 pt-3 border-t border-slate-50 line-clamp-2">{p.description}</p>
+                  )}
                 </div>
-                {p.features.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-slate-50">
-                    {p.features.slice(0, 4).map(f => (
-                      <span key={f} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg font-medium">{f}</span>
-                    ))}
-                    {p.features.length > 4 && <span className="text-xs text-slate-400 font-medium">+{p.features.length - 4}</span>}
-                  </div>
-                )}
-                {p.description && !p.features.length && <p className="text-xs text-slate-400 mt-3 line-clamp-2">{p.description}</p>}
               </div>
             );
           })}

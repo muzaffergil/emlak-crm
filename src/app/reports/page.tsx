@@ -6,14 +6,14 @@ import { propertyStore, clientStore, saleStore, type Property, type Sale, type C
 function fmt(n: number) { return n.toLocaleString("tr-TR"); }
 function fmtM(n: number) { return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${Math.round(n / 1_000)}K` : String(n); }
 
-function StatCard({ label, value, sub, icon: Icon, iconBg, iconColor }: {
+function StatCard({ label, value, sub, icon: Icon, gradient }: {
   label: string; value: string | number; sub?: string;
-  icon: React.ElementType; iconBg: string; iconColor: string;
+  icon: React.ElementType; gradient: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 flex items-start gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-        <Icon size={18} className={iconColor} />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 flex items-start gap-3.5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${gradient} shadow-sm`}>
+        <Icon size={19} className="text-white" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
@@ -151,8 +151,8 @@ export default function ReportsPage() {
       {/* Başlık */}
       <div className="border-b border-slate-200 pb-5">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
-            <BarChart2 size={16} className="text-violet-600" />
+          <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-sm shadow-violet-200">
+            <BarChart2 size={17} className="text-white" />
           </div>
           Raporlar
         </h1>
@@ -163,17 +163,17 @@ export default function ReportsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Aktif Portföy" value={stats.active}
           sub={`${properties.length} toplam`}
-          icon={Building2} iconBg="bg-amber-50" iconColor="text-amber-600" />
+          icon={Building2} gradient="from-amber-400 to-amber-600" />
         <StatCard label="Portföy Değeri"
           value={stats.totalValue > 0 ? `${fmtM(stats.totalValue)} ₺` : "—"}
           sub="müsait portföyler"
-          icon={TrendingUp} iconBg="bg-emerald-50" iconColor="text-emerald-600" />
+          icon={TrendingUp} gradient="from-emerald-400 to-teal-500" />
         <StatCard label="Toplam Satış" value={sales.length}
           sub={stats.totalSaleValue > 0 ? `${fmtM(stats.totalSaleValue)} ₺ ciro` : undefined}
-          icon={BadgeCheck} iconBg="bg-blue-50" iconColor="text-blue-600" />
+          icon={BadgeCheck} gradient="from-blue-400 to-indigo-500" />
         <StatCard label="Aktif Alıcı" value={stats.activeBuyers}
           sub={`${stats.pastBuyers} geçmiş alıcı`}
-          icon={Users} iconBg="bg-purple-50" iconColor="text-purple-600" />
+          icon={Users} gradient="from-violet-400 to-purple-500" />
       </div>
 
       {/* Komisyon Özeti */}

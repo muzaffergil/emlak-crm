@@ -418,8 +418,8 @@ export default function MatchesPage() {
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
       <div className="border-b border-slate-200 pb-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
-            <Zap size={20} className="text-violet-600" />
+          <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm shadow-violet-200">
+            <Zap size={17} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Eşleşmeler</h1>
@@ -429,7 +429,7 @@ export default function MatchesPage() {
         <div className="flex items-center gap-3">
           {lastRun && <span className="text-sm text-emerald-600 font-medium">{lastRun}</span>}
           <button onClick={() => runMatch()} disabled={running}
-            className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-amber-200 transition-all flex items-center gap-2 disabled:opacity-50">
+            className="bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm shadow-amber-200 transition-all flex items-center gap-2 disabled:opacity-50">
             <RefreshCw size={15} className={running ? "animate-spin" : ""} />
             {running ? "Eşleştiriliyor..." : "Eşleştir"}
           </button>
@@ -443,12 +443,12 @@ export default function MatchesPage() {
       )}
 
       {matches.length === 0 ? (
-        <div className="text-center py-20 text-slate-400">
-          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Zap size={32} className="text-slate-300" />
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
+            <Zap size={36} className="text-violet-400" />
           </div>
-          <p className="font-medium text-slate-500 mb-1">Henüz eşleşme yok.</p>
-          <p className="text-sm">Müşteri ve portföy ekledikten sonra &quot;Eşleştir&quot; butonuna tıklayın.</p>
+          <p className="font-semibold text-slate-600 text-lg mb-1">Henüz eşleşme yok</p>
+          <p className="text-sm text-center max-w-xs">Müşteri ve portföy ekledikten sonra &quot;Eşleştir&quot; butonuna tıklayın.</p>
         </div>
       ) : (
         <div className="space-y-5">
