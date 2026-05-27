@@ -7,6 +7,7 @@ import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuth } from "@/components/AuthProvider";
 import UserMenu from "@/components/UserMenu";
+import ChatWidget from "@/components/ChatWidget";
 
 const links = [
   { href: "/dashboard", label: "Genel Bakış", icon: LayoutDashboard },
@@ -66,6 +67,7 @@ export default function Navbar() {
   const [importing, setImporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [chatOpen, setChatOpen]   = useState(false);
   const [chatCopied, setChatCopied] = useState(false);
 
   function copyChatLink() {
@@ -108,6 +110,7 @@ export default function Navbar() {
           onCancel={() => setPendingFile(null)}
         />
       )}
+      <ChatWidget isOpen={chatOpen} onClose={() => setChatOpen(false)} />
       <nav className="sticky top-0 z-40 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-white/[0.07] shadow-2xl relative" style={{ boxShadow: "0 4px 24px -4px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset" }}>
         <div className="max-w-7xl mx-auto px-4">
           {/* Ana satır */}
@@ -146,15 +149,13 @@ export default function Navbar() {
             {/* Masaüstü dışa/içe aktar + kullanıcı menüsü */}
             <div className="hidden md:flex items-center gap-1 ml-auto">
               <div className="flex items-center gap-0.5">
-                <Link
-                  href="/chat"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => setChatOpen(true)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
                 >
                   <Bot size={15} />
                   Chatbot
-                </Link>
+                </button>
                 <button
                   onClick={copyChatLink}
                   title="Müşteri linkini kopyala"
@@ -217,16 +218,13 @@ export default function Navbar() {
                   );
                 })}
                 <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
-                  <Link
-                    href="/chat"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setMenuOpen(false)}
+                  <button
+                    onClick={() => { setMenuOpen(false); setChatOpen(true); }}
                     className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
                   >
                     <Bot size={17} />
                     Müşteri Chatbot
-                  </Link>
+                  </button>
                   <button
                     onClick={handleExport}
                     disabled={exporting}
