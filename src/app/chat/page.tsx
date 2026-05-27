@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Bot, User, Building2, MapPin, Ruler, BedDouble, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { computeMatches } from "@/lib/claude";
@@ -162,8 +162,9 @@ export default function ChatPage() {
   const [data, setData]   = useState<ConvData>(EMPTY);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLInputElement>(null);
+  const bottomRef    = useRef<HTMLDivElement>(null);
+  const inputRef     = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Müsait portföyleri yükle
   useEffect(() => {
@@ -175,6 +176,24 @@ export default function ChatPage() {
         if (rows) setProperties(rows as Property[]);
         setLoading(false);
       });
+  }, []);
+
+  // iOS klavye düzeltmesi — visualViewport ile container yüksekliğini güncelle
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      if (containerRef.current) {
+        containerRef.current.style.height = `${vv.height}px`;
+        containerRef.current.style.top    = `${vv.offsetTop}px`;
+      }
+      // Klavye açılınca son mesajı görünür tut
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "instant" }), 50);
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); };
   }, []);
 
   useEffect(() => {
@@ -313,43 +332,56 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100" style={{ height: "100dvh" }}>
-
+    <div
+      ref={containerRef}
+      className="fixed inset-x-0 top-0 z-50 flex flex-col bg-slate-100"
+      style={{ height: "100dvh" }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
-        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-sm">
+      <div className="flex items-center gap-3 px-4 bg-white border-b border-slate-200 shadow-sm flex-shrink-0"
+        style={{ paddingTop: "max(12px, env(safe-area-inset-top))", paddingBottom: "12px" }}>
+        <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
           <Building2 size={18} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-slate-900 leading-tight">
+          <p className="font-bold text-slate-900 leading-tight text-base">
             Estate<span className="text-amber-500">IQ</span> Asistan
           </p>
           <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-            <span className={`w-1.5 h-1.5 rounded-full inline-block ${loading ? "bg-amber-400" : "bg-emerald-500"}`} />
+            <span className={`w-1.5 h-1.5 rounded-full inline-block ${loading ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`} />
             {loading ? "Portföyler yükleniyor…" : `${properties.length} portföy hazır`}
           </p>
         </div>
+        {/* Yeniden başla — büyük dokunma alanı */}
         <button
           onClick={restart}
           title="Yeniden başla"
-          className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors"
         >
-          <RotateCcw size={16} />
+          <RotateCcw size={18} />
         </button>
       </div>
 
-      {/* Mesajlar */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Mesajlar — iOS smooth scroll + overscroll engelle */}
+      <div
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-4"
+        style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" } as React.CSSProperties}
+      >
         {messages.map(m => (
-          <div key={m.id} className={`flex gap-2.5 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm ${
+          <div key={m.id} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+            {/* Avatar */}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm ${
               m.role === "assistant" ? "bg-gradient-to-br from-amber-400 to-amber-600" : "bg-slate-700"
             }`}>
-              {m.role === "assistant" ? <Bot size={13} className="text-white" /> : <User size={13} className="text-white" />}
+              {m.role === "assistant" ? <Bot size={14} className="text-white" /> : <User size={14} className="text-white" />}
             </div>
 
-            <div className={`flex flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`} style={{ maxWidth: "82%" }}>
-              <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+            <div
+              className={`flex flex-col gap-2 min-w-0 ${m.role === "user" ? "items-end" : "items-start"}`}
+              style={{ maxWidth: "calc(100% - 48px)" }}
+            >
+              {/* Metin balonu */}
+              <div className={`px-4 py-3 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
                 m.role === "user"
                   ? "bg-amber-500 text-white rounded-tr-sm"
                   : "bg-white border border-slate-200 text-slate-800 rounded-tl-sm shadow-sm"
@@ -357,11 +389,18 @@ export default function ChatPage() {
                 {m.text}
               </div>
 
-              {/* Portföy kartları — yatay scroll */}
+              {/* Portföy kartları — yatay scroll (mobil dokunma optimize) */}
               {m.cards && m.cards.length > 0 && (
-                <div className="flex gap-3 overflow-x-auto pb-2 max-w-full" style={{ scrollSnapType: "x mandatory" }}>
+                <div
+                  className="flex gap-3 overflow-x-auto pb-2"
+                  style={{
+                    WebkitOverflowScrolling: "touch",
+                    scrollSnapType: "x mandatory",
+                    maxWidth: "calc(100vw - 60px)",
+                  } as React.CSSProperties}
+                >
                   {m.cards.map(p => (
-                    <div key={p.id} style={{ scrollSnapAlign: "start" }}>
+                    <div key={p.id} style={{ scrollSnapAlign: "start", flexShrink: 0 }}>
                       <PropCard p={p} />
                     </div>
                   ))}
@@ -373,28 +412,33 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 bg-white border-t border-slate-200 px-4 py-3" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-        <div className="flex gap-2 max-w-2xl mx-auto">
+      {/* Input — iOS safe area + 16px font (zoom engelle) */}
+      <div
+        className="flex-shrink-0 bg-white border-t border-slate-200 px-3 pt-3"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex gap-2">
           <input
             ref={inputRef}
             type="text"
+            inputMode="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
             placeholder="Mesajınızı yazın…"
             disabled={loading}
-            className="flex-1 px-4 py-3 bg-slate-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:bg-white transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-3 bg-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:bg-white transition-all disabled:opacity-50"
+            style={{ fontSize: "16px" /* iOS zoom'u engeller */ }}
           />
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform disabled:opacity-40 disabled:scale-100"
+            className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-sm active:scale-95 transition-transform disabled:opacity-40"
           >
             <Send size={18} className="text-white" />
           </button>
         </div>
-        <p className="text-center text-[10px] text-slate-400 mt-2">EstateIQ AI • Gaziantep Emlak</p>
+        <p className="text-center text-[10px] text-slate-400 mt-2 pb-0.5">EstateIQ AI • Gaziantep Emlak</p>
       </div>
     </div>
   );
