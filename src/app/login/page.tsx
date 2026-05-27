@@ -1,22 +1,34 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Mail, Lock, Loader2, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
-type Mode = "giris" | "kayit" | "reset";
+type Mode = "giris" | "kayit" | "reset" | "newpass";
 
 export default function LoginPage() {
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword, updatePassword } = useAuth();
   const router = useRouter();
 
-  const [mode, setMode]       = useState<Mode>("giris");
-  const [email, setEmail]     = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw]   = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
+  const [mode, setMode]             = useState<Mode>("giris");
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [confirmPw, setConfirmPw]   = useState("");
+  const [showPw, setShowPw]         = useState(false);
+  const [showCPw, setShowCPw]       = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [resetSent, setResetSent]   = useState(false);
+  const [pwUpdated, setPwUpdated]   = useState(false);
+
+  // Supabase şifre sıfırlama linki: hash içinde type=recovery gelir
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setMode("newpass");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   function switchMode(m: Mode) { setMode(m); setError(null); setResetSent(false); }
 
@@ -30,6 +42,19 @@ export default function LoginPage() {
       setLoading(false);
       if (err) setError(err);
       else setResetSent(true);
+      return;
+    }
+
+    if (mode === "newpass") {
+      if (password !== confirmPw) {
+        setError("Şifreler eşleşmiyor.");
+        setLoading(false);
+        return;
+      }
+      const err = await updatePassword(password);
+      setLoading(false);
+      if (err) setError(err);
+      else setPwUpdated(true);
       return;
     }
 
@@ -70,10 +95,93 @@ export default function LoginPage() {
         {/* Kart */}
         <div className="bg-white/[0.05] backdrop-blur-xl rounded-2xl ring-1 ring-white/[0.1] overflow-hidden shadow-2xl">
 
-          {/* ── Şifre sıfırlama görünümü ── */}
-          {mode === "reset" ? (
+          {/* ── Yeni şifre belirleme (recovery linkinden gelindiğinde) ── */}
+          {mode === "newpass" ? (
             <div className="p-6">
-              {/* Geri butonu */}
+              {pwUpdated ? (
+                <div className="text-center py-4">
+                  <div className="w-14 h-14 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={28} className="text-emerald-400" />
+                  </div>
+                  <h2 className="text-white font-bold text-lg mb-2">Şifre Güncellendi</h2>
+                  <p className="text-slate-400 text-sm leading-relaxed">Yeni şifrenizle giriş yapabilirsiniz.</p>
+                  <button
+                    onClick={() => router.replace("/")}
+                    className="mt-6 w-full py-2.5 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white text-sm font-semibold rounded-xl transition-all"
+                  >
+                    Uygulamaya Gir
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                  <div>
+                    <h2 className="text-white font-bold text-base mb-1">Yeni Şifre Belirle</h2>
+                    <p className="text-slate-400 text-xs leading-relaxed">En az 6 karakterli yeni şifrenizi girin.</p>
+                  </div>
+
+                  {/* Yeni şifre */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Yeni Şifre</label>
+                    <div className="relative">
+                      <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <input
+                        type={showPw ? "text" : "password"}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        placeholder="En az 6 karakter"
+                        className="w-full pl-9 pr-10 py-2.5 text-sm bg-white/[0.07] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all placeholder:text-slate-600"
+                      />
+                      <button type="button" onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                        {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Şifre tekrar */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">Şifre Tekrar</label>
+                    <div className="relative">
+                      <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <input
+                        type={showCPw ? "text" : "password"}
+                        value={confirmPw}
+                        onChange={e => setConfirmPw(e.target.value)}
+                        required
+                        minLength={6}
+                        placeholder="Aynı şifreyi tekrar girin"
+                        className="w-full pl-9 pr-10 py-2.5 text-sm bg-white/[0.07] border border-white/[0.1] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/50 transition-all placeholder:text-slate-600"
+                      />
+                      <button type="button" onClick={() => setShowCPw(!showCPw)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                        {showCPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl px-3 py-2.5">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-gradient-to-br from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] text-white text-sm font-semibold rounded-xl shadow-lg shadow-amber-500/25 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {loading && <Loader2 size={15} className="animate-spin" />}
+                    Şifremi Güncelle
+                  </button>
+                </form>
+              )}
+            </div>
+
+          ) : mode === "reset" ? (
+            /* ── Şifre sıfırlama görünümü ── */
+            <div className="p-6">
               <button
                 onClick={() => switchMode("giris")}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors mb-5"
@@ -82,7 +190,6 @@ export default function LoginPage() {
               </button>
 
               {resetSent ? (
-                /* Başarı durumu */
                 <div className="text-center py-4">
                   <div className="w-14 h-14 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <CheckCircle2 size={28} className="text-emerald-400" />
@@ -100,7 +207,6 @@ export default function LoginPage() {
                   </button>
                 </div>
               ) : (
-                /* Sıfırlama formu */
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <div>
                     <h2 className="text-white font-bold text-base mb-1">Şifremi Unuttum</h2>
@@ -141,10 +247,10 @@ export default function LoginPage() {
                 </form>
               )}
             </div>
+
           ) : (
             /* ── Giriş / Kayıt görünümü ── */
             <>
-              {/* Tab başlıkları */}
               <div className="flex border-b border-white/[0.08]">
                 {(["giris", "kayit"] as const).map((t) => (
                   <button
@@ -161,9 +267,7 @@ export default function LoginPage() {
                 ))}
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
-                {/* Email */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email</label>
                   <div className="relative">
@@ -179,7 +283,6 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Şifre */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-semibold text-slate-300">Şifre</label>
