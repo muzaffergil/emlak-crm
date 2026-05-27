@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { BarChart2, TrendingUp, Building2, Users, BadgeCheck, Banknote, CheckCircle2, Clock, AlertTriangle, MapPin, PieChart, Filter } from "lucide-react";
+import { BarChart2, TrendingUp, Building2, Users, BadgeCheck, Banknote, CheckCircle2, Clock, AlertTriangle, MapPin, PieChart, Filter, X, Phone } from "lucide-react";
 import { propertyStore, clientStore, saleStore, type Property, type Sale, type Client } from "@/lib/storage";
 
 function fmt(n: number) { return n.toLocaleString("tr-TR"); }
@@ -49,6 +49,7 @@ export default function ReportsPage() {
   const [clients, setClients]       = useState<Client[]>([]);
   const [loading, setLoading]       = useState(true);
   const [filterYear, setFilterYear] = useState<string>("all");
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([propertyStore.getAll(), saleStore.getAll(), clientStore.getAll()])
@@ -302,8 +303,8 @@ export default function ReportsPage() {
                   const [year, mon] = key.split("-");
                   const label = `${MONTH_NAMES[mon] ?? mon} ${year}`;
                   return (
-                    <tr key={key} className="hover:bg-slate-50/50">
-                      <td className="px-5 py-3 font-medium text-slate-700">{label}</td>
+                    <tr key={key} onClick={() => setSelectedMonthKey(key)} className="hover:bg-emerald-50/60 cursor-pointer transition-colors">
+                      <td className="px-5 py-3 font-medium text-slate-700 flex items-center gap-1.5">{label} <span className="text-[10px] text-slate-400">(detay)</span></td>
                       <td className="px-5 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -414,6 +415,127 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Ay Detay Modalı */}
+      {selectedMonthKey && (() => {
+        const [yr, mn] = selectedMonthKey.split("-");
+        const monthLabel = `${MONTH_NAMES[mn] ?? mn} ${yr}`;
+        const monthlySales = filteredSales.filter(s => s.sold_at.startsWith(selectedMonthKey));
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            onClick={() => setSelectedMonthKey(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <BadgeCheck size={15} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">{monthLabel} Satışları</h3>
+                    <p className="text-xs text-slate-400">{monthlySales.length} satış</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedMonthKey(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Liste */}
+              <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                {monthlySales.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-8">Bu ay satış kaydı yok.</p>
+                ) : monthlySales.map(s => {
+                  const total = (s.buyer_commission ?? 0) + (s.seller_commission ?? 0);
+                  const paid  = s.buyer_commission_paid + s.seller_commission_paid;
+                  const payStatus = total === 0 ? null
+                    : paid >= total ? "full"
+                    : paid > 0     ? "partial"
+                    : "none";
+
+                  return (
+                    <div key={s.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-2.5">
+                      {/* Portföy başlığı */}
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-semibold text-slate-800 text-sm leading-snug">
+                          {s.property_data.title || s.property_data.type}
+                        </p>
+                        <span className="text-xs text-slate-400 flex-shrink-0">
+                          {new Date(s.sold_at).toLocaleDateString("tr-TR")}
+                        </span>
+                      </div>
+
+                      {/* Alıcı */}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <Users size={11} className="text-slate-400" />
+                        <span className="font-medium">{s.buyer_name}</span>
+                        {s.buyer_phone && (
+                          <>
+                            <Phone size={10} className="text-slate-400 ml-1" />
+                            <span className="text-slate-500">{s.buyer_phone}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Fiyat + Komisyon */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white rounded-lg px-2.5 py-2 border border-slate-100 text-center">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase">Satış Fiyatı</p>
+                          <p className="text-sm font-bold text-slate-800 mt-0.5">
+                            {s.property_data.price ? `${fmtM(s.property_data.price)} ₺` : "—"}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg px-2.5 py-2 border border-slate-100 text-center">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase">Alıcı Kom.</p>
+                          <p className="text-sm font-bold text-blue-700 mt-0.5">
+                            {s.buyer_commission ? `${fmt(s.buyer_commission)} ₺` : "—"}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg px-2.5 py-2 border border-slate-100 text-center">
+                          <p className="text-[10px] text-slate-400 font-semibold uppercase">Satıcı Kom.</p>
+                          <p className="text-sm font-bold text-indigo-700 mt-0.5">
+                            {s.seller_commission ? `${fmt(s.seller_commission)} ₺` : "—"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Ödeme Durumu */}
+                      {payStatus && (
+                        <div className="flex items-center gap-2">
+                          {payStatus === "full" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                              <CheckCircle2 size={11} /> Komisyon Ödendi
+                            </span>
+                          )}
+                          {payStatus === "partial" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
+                              <Clock size={11} /> Kısmi Ödeme ({fmt(paid)} / {fmt(total)} ₺)
+                            </span>
+                          )}
+                          {payStatus === "none" && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+                              <AlertTriangle size={11} /> Henüz Ödenmedi
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
