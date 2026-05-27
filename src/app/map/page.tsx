@@ -45,63 +45,67 @@ export default function MapPage() {
     : null;
 
   return (
-    /*
-     * position:fixed + top:60px → calc(100vh) hesabı yok.
-     * iOS Safari'de adres çubuğu yüzünden 100vh yanlış hesaplanır;
-     * fixed + bottom:0 ise her cihazda kesin olarak navbar altını doldurur.
-     */
-    <div className="fixed inset-x-0 bottom-0 z-[30]" style={{ top: "60px" }}>
+    <>
+      {/*
+       * Harita kapsayıcısı — fixed + top:60px navbar altını doldurur.
+       * z-[30] burada — Leaflet'in iç katmanları (z-200 vb.) bu bağlamda kalır.
+       */}
+      <div className="fixed inset-x-0 bottom-0 z-[30]" style={{ top: "60px" }}>
 
-      {/* Harita */}
-      {loading ? (
-        <div className="h-full bg-slate-100 flex items-center justify-center text-slate-400">
-          Yükleniyor…
-        </div>
-      ) : (
-        <AllPropertiesMap properties={properties} onSelect={p => setSelected(p)} />
-      )}
-
-      {/* Lejant — masaüstü: etiketli, mobil: sadece renkli noktalar */}
-      <div className="absolute bottom-6 left-3 z-[35] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg ring-1 ring-black/[0.06] p-2.5">
-        <div className="hidden sm:flex flex-col gap-1.5">
-          {LEGEND.map(l => (
-            <div key={l.label} className="flex items-center gap-2 text-xs text-slate-700">
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: l.color }} />
-              {l.label}
-            </div>
-          ))}
-          <div className="border-t border-slate-100 mt-1 pt-1 text-xs text-slate-400 font-medium">
-            {properties.length} portföy
+        {/* Harita */}
+        {loading ? (
+          <div className="h-full bg-slate-100 flex items-center justify-center text-slate-400">
+            Yükleniyor…
           </div>
-        </div>
-        {/* Mobil: sadece renk noktaları + toplam sayı */}
-        <div className="flex sm:hidden items-center gap-2">
-          {LEGEND.map(l => (
-            <span key={l.label} className="w-3 h-3 rounded-full" style={{ background: l.color }} />
-          ))}
-          <span className="text-xs text-slate-500 font-medium">{properties.length}</span>
+        ) : (
+          <AllPropertiesMap properties={properties} onSelect={p => setSelected(p)} />
+        )}
+
+        {/* Lejant — masaüstü: etiketli, mobil: sadece renkli noktalar */}
+        <div className="absolute bottom-6 left-3 z-[35] bg-white/95 backdrop-blur-sm rounded-xl shadow-lg ring-1 ring-black/[0.06] p-2.5">
+          <div className="hidden sm:flex flex-col gap-1.5">
+            {LEGEND.map(l => (
+              <div key={l.label} className="flex items-center gap-2 text-xs text-slate-700">
+                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: l.color }} />
+                {l.label}
+              </div>
+            ))}
+            <div className="border-t border-slate-100 mt-1 pt-1 text-xs text-slate-400 font-medium">
+              {properties.length} portföy
+            </div>
+          </div>
+          <div className="flex sm:hidden items-center gap-2">
+            {LEGEND.map(l => (
+              <span key={l.label} className="w-3 h-3 rounded-full" style={{ background: l.color }} />
+            ))}
+            <span className="text-xs text-slate-500 font-medium">{properties.length}</span>
+          </div>
         </div>
       </div>
 
-      {/* Seçilen portföy */}
+      {/*
+       * Seçilen portföy — harita div'inin DIŞINDA, root stacking context'te.
+       * z-[500] > Leaflet iç katmanları (z-200) > harita kapsayıcısı (z-30).
+       * Böylece her tarayıcıda ve mobilde haritanın önünde görünür.
+       */}
       {selected && st && (
         <>
-          {/* Mobil overlay — fixed, navbar altından başlar */}
+          {/* Mobil koyu arka plan — navbar altından, karta tıklamayı kapat */}
           <div
-            className="fixed inset-x-0 bottom-0 bg-black/20 z-[50] sm:hidden"
+            className="fixed inset-x-0 bottom-0 bg-black/30 z-[499] sm:hidden"
             style={{ top: "60px" }}
             onClick={() => setSelected(null)}
           />
 
           {/*
-           * Kart — fixed kullanarak Leaflet GPU katmanlarının üstünde kalır
+           * Detay kartı
            *   Mobil  → bottom sheet (tam genişlik, aşağıdan)
-           *   Tablet+ → sağ panel (navbar altından, sağ üst köşe)
+           *   Tablet+ → sağ panel (navbar altı, sağ köşe)
            */}
           <div className={[
-            "fixed z-[51] bg-white shadow-2xl ring-1 ring-black/[0.06] flex flex-col overflow-hidden",
+            "fixed z-[500] bg-white shadow-2xl ring-1 ring-black/[0.06] flex flex-col overflow-hidden",
             "bottom-0 left-0 right-0 rounded-t-2xl max-h-[75vh]",
-            "sm:top-[68px] sm:bottom-auto sm:left-auto sm:right-4 sm:w-72 sm:rounded-2xl sm:max-h-[calc(100vh-80px)]",
+            "sm:top-[68px] sm:bottom-auto sm:left-auto sm:right-4 sm:w-80 sm:rounded-2xl sm:max-h-[calc(100vh-80px)]",
           ].join(" ")}>
 
             {/* Mobil sürükleme çubuğu */}
@@ -196,6 +200,6 @@ export default function MapPage() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
