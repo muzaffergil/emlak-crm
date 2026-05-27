@@ -7,7 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 type Mode = "giris" | "kayit" | "reset" | "newpass";
 
 export default function LoginPage() {
-  const { signIn, signUp, resetPassword, updatePassword } = useAuth();
+  const { signIn, signUp, resetPassword, updatePassword, recoveryMode, clearRecoveryMode } = useAuth();
   const router = useRouter();
 
   const [mode, setMode]             = useState<Mode>("giris");
@@ -21,14 +21,12 @@ export default function LoginPage() {
   const [resetSent, setResetSent]   = useState(false);
   const [pwUpdated, setPwUpdated]   = useState(false);
 
-  // Supabase şifre sıfırlama linki: hash içinde type=recovery gelir
+  // Supabase PASSWORD_RECOVERY event'i gelince yeni şifre moduna geç
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
+    if (recoveryMode) {
       setMode("newpass");
-      window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+  }, [recoveryMode]);
 
   function switchMode(m: Mode) { setMode(m); setError(null); setResetSent(false); }
 
@@ -53,8 +51,9 @@ export default function LoginPage() {
       }
       const err = await updatePassword(password);
       setLoading(false);
-      if (err) setError(err);
-      else setPwUpdated(true);
+      if (err) { setError(err); return; }
+      clearRecoveryMode();
+      setPwUpdated(true);
       return;
     }
 

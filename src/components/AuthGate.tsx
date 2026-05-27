@@ -5,7 +5,7 @@ import { Loader2, Building2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, recoveryMode } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -15,7 +15,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (!loading && !user && !isPublic) {
       router.replace("/login");
     }
-  }, [loading, user, isPublic, pathname, router]);
+    // Şifre sıfırlama modundayken giriş sayfasında tut
+    if (!loading && user && recoveryMode && pathname !== "/login") {
+      router.replace("/login");
+    }
+  }, [loading, user, isPublic, recoveryMode, pathname, router]);
 
   if (loading && !isPublic) {
     return (
