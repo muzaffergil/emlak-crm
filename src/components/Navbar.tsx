@@ -145,14 +145,24 @@ export default function Navbar() {
 
             {/* Masaüstü dışa/içe aktar + kullanıcı menüsü */}
             <div className="hidden md:flex items-center gap-1 ml-auto">
-              <button
-                onClick={copyChatLink}
-                title="Müşteri chatbot linkini kopyala"
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white hover:bg-white/[0.08]"
-              >
-                <Bot size={15} className={chatCopied ? "text-emerald-400" : ""} />
-                {chatCopied ? <span className="text-emerald-400">Kopyalandı!</span> : "Chatbot"}
-              </button>
+              <div className="flex items-center gap-0.5">
+                <Link
+                  href="/chat"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
+                >
+                  <Bot size={15} />
+                  Chatbot
+                </Link>
+                <button
+                  onClick={copyChatLink}
+                  title="Müşteri linkini kopyala"
+                  className="flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-all text-slate-500 hover:text-white hover:bg-white/[0.08]"
+                >
+                  {chatCopied ? <span className="text-[10px] text-emerald-400 font-semibold px-1">✓</span> : <span className="text-[11px] opacity-60">🔗</span>}
+                </button>
+              </div>
               <div className="w-px h-5 bg-white/[0.1] mx-1" />
               <button
                 onClick={handleExport}
@@ -207,13 +217,16 @@ export default function Navbar() {
                   );
                 })}
                 <div className="border-t border-white/[0.06] mt-1 pt-1 flex flex-col gap-0.5">
-                  <button
-                    onClick={() => { setMenuOpen(false); copyChatLink(); }}
+                  <Link
+                    href="/chat"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMenuOpen(false)}
                     className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
                   >
-                    <Bot size={17} className={chatCopied ? "text-emerald-400" : ""} />
-                    {chatCopied ? <span className="text-emerald-400">Link kopyalandı!</span> : "Müşteri Chatbot Linki"}
-                  </button>
+                    <Bot size={17} />
+                    Müşteri Chatbot
+                  </Link>
                   <button
                     onClick={handleExport}
                     disabled={exporting}
