@@ -81,7 +81,6 @@ export default function Navbar() {
   }
 
   if (!user) return null;
-  if (pathname.startsWith("/alici")) return null;
 
   async function handleExport() {
     setExporting(true);
