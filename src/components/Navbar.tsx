@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText, Bot } from "lucide-react";
+import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText, Bot, Calculator, Kanban } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuth } from "@/components/AuthProvider";
@@ -18,6 +18,8 @@ const links = [
   { href: "/map", label: "Harita", icon: Map },
   { href: "/reports", label: "Raporlar", icon: BarChart2 },
   { href: "/sozlesme", label: "Sözleşme", icon: FileText },
+  { href: "/hesaplama", label: "Hesaplama", icon: Calculator },
+  { href: "/pipeline", label: "Pipeline", icon: Kanban },
 ];
 
 async function exportData() {

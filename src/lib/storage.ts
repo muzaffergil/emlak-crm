@@ -41,6 +41,7 @@ export interface Client {
   phone?: string;
   email?: string;
   intent: string;
+  stage?: string;
   property_types: string[];
   cities: string[];
   districts: string[];
@@ -99,6 +100,7 @@ function toClient(r: any): Client {
     phone: r.phone ?? undefined,
     email: r.email ?? undefined,
     intent: r.intent,
+    stage: r.stage ?? undefined,
     property_types: Array.isArray(r.property_types) ? r.property_types : [],
     cities: Array.isArray(r.cities) ? r.cities : [],
     districts: Array.isArray(r.districts) ? r.districts : [],
@@ -355,6 +357,42 @@ export const settingsStore = {
   },
   setApiKey(key: string): void {
     localStorage.setItem("emlak_api_key", key);
+  },
+};
+
+export const favoriteStore = {
+  async getAll(): Promise<number[]> {
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("property_id");
+    if (error) return [];
+    return (data ?? []).map(r => Number(r.property_id));
+  },
+
+  async toggle(propertyId: number): Promise<boolean> {
+    const uid = await currentUserId();
+    const { data } = await supabase
+      .from("favorites")
+      .select("id")
+      .eq("property_id", propertyId)
+      .eq("user_id", uid)
+      .single();
+
+    if (data) {
+      await supabase.from("favorites").delete().eq("property_id", propertyId).eq("user_id", uid);
+      return false;
+    } else {
+      await supabase.from("favorites").insert([{ property_id: propertyId, user_id: uid }]);
+      return true;
+    }
+  },
+
+  async getCount(propertyId: number): Promise<number> {
+    const { count } = await supabase
+      .from("favorites")
+      .select("id", { count: "exact", head: true })
+      .eq("property_id", propertyId);
+    return count ?? 0;
   },
 };
 

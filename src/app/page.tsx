@@ -2,8 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus } from "lucide-react";
-import { propertyStore, clientStore, matchStore, saleStore, shareStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus, Scale, Heart } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, shareStore, favoriteStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
 import { Toast } from "@/components/Toast";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -778,13 +780,34 @@ export default function PortfolioPage() {
   const [importLoading, setImportLoading] = useState(false);
   const [showExcelModal, setShowExcelModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [compareIds, setCompareIds] = useState<number[]>([]);
+  const [favIds, setFavIds] = useState<Set<number>>(new Set());
   const excelFileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  function toggleCompare(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    setCompareIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev
+    );
+  }
+
+  async function toggleFav(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
+    const nowFav = await favoriteStore.toggle(id);
+    setFavIds(prev => {
+      const next = new Set(prev);
+      if (nowFav) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     propertyStore.getAll().then(data => {
       setProperties(data);
       setLoading(false);
     }).catch(() => setLoading(false));
+    favoriteStore.getAll().then(ids => setFavIds(new Set(ids))).catch(() => {});
   }, []);
 
   // Dinamik seçenekler
@@ -1102,17 +1125,28 @@ export default function PortfolioPage() {
                       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{st.label}
                     </span>
                   </div>
-                  {/* Yaşlı badge */}
-                  {isOld && (
-                    <div className="absolute top-3 right-3">
+                  {/* Yaşlı badge + favori */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    {isOld && (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/90 text-white backdrop-blur-sm shadow-sm">
                         <Clock size={9} /> {ageDays}g
                       </span>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      onClick={e => toggleFav(p.id, e)}
+                      className="w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm bg-black/30 hover:bg-black/50 transition-colors"
+                      title={favIds.has(p.id) ? "Favoriden çıkar" : "Favorilere ekle"}
+                    >
+                      <Heart size={12} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
+                    </button>
+                  </div>
                   {/* Hover aksiyonlar */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200">
                     <div className="flex gap-1 bg-black/40 backdrop-blur-sm rounded-xl p-1">
+                      <button onClick={e => toggleCompare(p.id, e)} title="Karşılaştırmaya ekle/çıkar"
+                        className={`p-1.5 rounded-lg transition-colors ${compareIds.includes(p.id) ? "text-blue-300 bg-white/20" : "text-white/80 hover:text-blue-300 hover:bg-white/10"}`}>
+                        <Scale size={13} />
+                      </button>
                       <a href={shareHref} target="_blank" rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
                         className="p-1.5 rounded-lg text-white/80 hover:text-green-400 hover:bg-white/10 transition-colors">
@@ -1178,6 +1212,24 @@ export default function PortfolioPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Karşılaştırma floating bar */}
+      {compareIds.length >= 2 && createPortal(
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl ring-1 ring-white/10">
+          <Scale size={15} className="text-blue-400 flex-shrink-0" />
+          <span className="text-sm font-medium">{compareIds.length} portföy seçildi</span>
+          <button
+            onClick={() => router.push(`/karsilastir?ids=${compareIds.join(",")}`)}
+            className="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-sm font-semibold px-4 py-1.5 rounded-xl transition-all"
+          >
+            Karşılaştır
+          </button>
+          <button onClick={() => setCompareIds([])} className="text-slate-400 hover:text-white transition-colors">
+            <X size={15} />
+          </button>
+        </div>,
+        document.body
       )}
     </div>
   );
