@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText, Bot, Calculator, Kanban } from "lucide-react";
+import { Building2, Users, Zap, Download, Upload, Loader2, Menu, X, BadgeCheck, Map, LayoutDashboard, BarChart2, FileText, Bot, Calculator, Kanban, LogOut, User } from "lucide-react";
 import { propertyStore, clientStore, matchStore } from "@/lib/storage";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useAuth } from "@/components/AuthProvider";
@@ -62,7 +62,7 @@ async function importData(file: File) {
 }
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
   const fileRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -243,8 +243,20 @@ export default function Navbar() {
                     {importing ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}
                     İçe Aktar
                   </button>
-                  <div className="px-2 pt-1 pb-2">
-                    <UserMenu />
+                  <div className="border-t border-white/[0.06] mt-1 pt-2 px-1 pb-2">
+                    <div className="px-3 py-2 mb-1">
+                      <p className="text-xs text-slate-500">Giriş yapıldı</p>
+                      <p className="text-sm text-slate-300 font-medium truncate flex items-center gap-1.5 mt-0.5">
+                        <User size={12} className="text-amber-400" />
+                        {user.email}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => { setMenuOpen(false); await signOut(); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
+                    >
+                      <LogOut size={17} /> Çıkış Yap
+                    </button>
                   </div>
                 </div>
               </div>
