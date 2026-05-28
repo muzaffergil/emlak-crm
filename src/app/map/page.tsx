@@ -104,7 +104,8 @@ export default function MapPage() {
            */}
           <div className={[
             "fixed z-[500] bg-white shadow-2xl ring-1 ring-black/[0.06] flex flex-col overflow-hidden",
-            "bottom-0 left-0 right-0 rounded-t-2xl max-h-[75vh]",
+            // max-h: dvh (URL bar'ı hariç tutar) - 70px navbar → kart hiçbir zaman navbar arkasına girmez
+            "bottom-0 left-0 right-0 rounded-t-2xl max-h-[calc(100dvh-70px)]",
             "sm:top-[68px] sm:bottom-auto sm:left-auto sm:right-4 sm:w-80 sm:rounded-2xl sm:max-h-[calc(100vh-80px)]",
           ].join(" ")}>
 
@@ -130,8 +131,9 @@ export default function MapPage() {
               </button>
             </div>
 
-            {/* İçerik — kaydırılabilir */}
-            <div className="px-4 py-3 space-y-3 overflow-y-auto">
+            {/* İçerik — kaydırılabilir (iOS momentum scroll + safe area) */}
+            <div className="px-4 py-3 space-y-3 overflow-y-auto"
+              style={{ WebkitOverflowScrolling: "touch", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
               <div className="flex items-center gap-1.5 text-xs text-slate-600">
                 <MapPin size={12} className="text-slate-400 flex-shrink-0" />
                 {[selected.neighborhood, selected.district, selected.city].filter(Boolean).join(", ")}
