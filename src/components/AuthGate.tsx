@@ -9,7 +9,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublic = pathname === "/login" || pathname === "/p" || pathname === "/portal" || pathname === "/chat";
+  const isPublic = pathname === "/login" || pathname === "/p" || pathname === "/portal" || pathname === "/chat"
+    || pathname.startsWith("/alici");
 
   useEffect(() => {
     if (!loading && !user && !isPublic) {

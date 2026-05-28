@@ -184,6 +184,26 @@ export const propertyStore = {
       .eq("user_id", uid);
     if (error) throw error;
   },
+
+  async getMusait(): Promise<Property[]> {
+    const { data, error } = await supabase
+      .from("properties")
+      .select("*")
+      .eq("status", "musait")
+      .order("id", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toProperty);
+  },
+
+  async getByIdPublic(id: number): Promise<Property | null> {
+    const { data, error } = await supabase
+      .from("properties")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    return toProperty(data);
+  },
 };
 
 export const clientStore = {
@@ -350,6 +370,112 @@ export const saleStore = {
   },
 };
 
+export const showingRequestStore = {
+  async create(propertyId: number, message?: string): Promise<void> {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) throw new Error("Oturum bulunamadı");
+    const { error } = await supabase.from("showing_requests").insert([{
+      buyer_id: data.user.id,
+      property_id: propertyId,
+      message: message ?? null,
+    }]);
+    if (error) throw error;
+  },
+
+  async getByBuyer(): Promise<ShowingRequest[]> {
+    const { data, error } = await supabase
+      .from("showing_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return (data ?? []).map(r => ({
+      id: Number(r.id),
+      buyer_id: r.buyer_id,
+      property_id: Number(r.property_id),
+      message: r.message ?? undefined,
+      status: r.status as ShowingRequest["status"],
+      created_at: r.created_at,
+    }));
+  },
+
+  async getAllWithDetails(): Promise<ShowingRequestWithDetails[]> {
+    const [reqRes, propRes] = await Promise.all([
+      supabase.from("showing_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("properties").select("id, title"),
+    ]);
+    if (reqRes.error) return [];
+    const reqs = reqRes.data ?? [];
+    const buyerIds = [...new Set(reqs.map(r => r.buyer_id as string))];
+    const { data: profiles } = buyerIds.length > 0
+      ? await supabase.from("buyer_profiles").select("user_id, name, phone").in("user_id", buyerIds)
+      : { data: [] };
+    const profileMap = new Map((profiles ?? []).map(p => [p.user_id as string, p]));
+    const propMap = new Map((propRes.data ?? []).map(p => [Number(p.id), p.title as string]));
+    return reqs.map(r => ({
+      id: Number(r.id),
+      buyer_id: r.buyer_id,
+      property_id: Number(r.property_id),
+      message: r.message ?? undefined,
+      status: r.status as ShowingRequest["status"],
+      created_at: r.created_at,
+      buyer_name: profileMap.get(r.buyer_id as string)?.name ?? "Bilinmiyor",
+      buyer_phone: (profileMap.get(r.buyer_id as string) as { phone?: string } | undefined)?.phone ?? undefined,
+      property_title: propMap.get(Number(r.property_id)) ?? `Portföy #${r.property_id}`,
+    }));
+  },
+
+  async updateStatus(id: number, status: ShowingRequest["status"]): Promise<void> {
+    const { error } = await supabase.from("showing_requests").update({ status }).eq("id", id);
+    if (error) throw error;
+  },
+};
+
+export const agentContactStore = {
+  async get(): Promise<AgentContact | null> {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return null;
+    const { data: row } = await supabase
+      .from("agent_contact")
+      .select("*")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    if (!row) return null;
+    return toAgentContact(row);
+  },
+
+  async getFirst(): Promise<AgentContact | null> {
+    const { data: row } = await supabase
+      .from("agent_contact")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+    if (!row) return null;
+    return toAgentContact(row);
+  },
+
+  async upsert(data: { name?: string; phone?: string; title?: string; about?: string }): Promise<void> {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) throw new Error("Oturum bulunamadı");
+    const { error } = await supabase.from("agent_contact").upsert(
+      { user_id: authData.user.id, ...data },
+      { onConflict: "user_id" }
+    );
+    if (error) throw error;
+  },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toAgentContact(r: any): AgentContact {
+  return {
+    id: Number(r.id),
+    user_id: r.user_id,
+    name: r.name ?? undefined,
+    phone: r.phone ?? undefined,
+    title: r.title ?? "Emlak Danışmanı",
+    about: r.about ?? undefined,
+  };
+}
+
 export const settingsStore = {
   getApiKey(): string {
     if (typeof window === "undefined") return "";
@@ -357,6 +483,30 @@ export const settingsStore = {
   },
   setApiKey(key: string): void {
     localStorage.setItem("emlak_api_key", key);
+  },
+};
+
+export const buyerProfileStore = {
+  async get(): Promise<BuyerProfile | null> {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return null;
+    const { data: row } = await supabase
+      .from("buyer_profiles")
+      .select("*")
+      .eq("user_id", authData.user.id)
+      .maybeSingle();
+    if (!row) return null;
+    return toBuyerProfile(row);
+  },
+
+  async upsert(data: { name: string; phone?: string; budget_min?: number; budget_max?: number; pref_types?: string[]; pref_dists?: string[] }): Promise<void> {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) throw new Error("Oturum bulunamadı");
+    const { error } = await supabase.from("buyer_profiles").upsert(
+      { user_id: authData.user.id, ...data },
+      { onConflict: "user_id" }
+    );
+    if (error) throw error;
   },
 };
 
@@ -395,6 +545,57 @@ export const favoriteStore = {
     return count ?? 0;
   },
 };
+
+export interface BuyerProfile {
+  id: string;
+  user_id: string;
+  name: string;
+  phone?: string;
+  budget_min?: number;
+  budget_max?: number;
+  pref_types: string[];
+  pref_dists: string[];
+  created_at: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toBuyerProfile(r: any): BuyerProfile {
+  return {
+    id: r.id,
+    user_id: r.user_id,
+    name: r.name,
+    phone: r.phone ?? undefined,
+    budget_min: r.budget_min != null ? Number(r.budget_min) : undefined,
+    budget_max: r.budget_max != null ? Number(r.budget_max) : undefined,
+    pref_types: Array.isArray(r.pref_types) ? r.pref_types : [],
+    pref_dists: Array.isArray(r.pref_dists) ? r.pref_dists : [],
+    created_at: r.created_at,
+  };
+}
+
+export interface ShowingRequest {
+  id: number;
+  buyer_id: string;
+  property_id: number;
+  message?: string;
+  status: "bekliyor" | "onaylandi" | "reddedildi";
+  created_at: string;
+}
+
+export interface ShowingRequestWithDetails extends ShowingRequest {
+  buyer_name: string;
+  buyer_phone?: string;
+  property_title: string;
+}
+
+export interface AgentContact {
+  id: number;
+  user_id: string;
+  name?: string;
+  phone?: string;
+  title: string;
+  about?: string;
+}
 
 export interface Activity {
   id: number;

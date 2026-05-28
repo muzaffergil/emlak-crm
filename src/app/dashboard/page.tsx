@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Banknote, CheckCircle2, ChevronDown, BarChart2, Phone, LayoutDashboard } from "lucide-react";
-import { propertyStore, clientStore, matchStore, saleStore, activityStore, type Property, type Sale, type Client } from "@/lib/storage";
+import { Building2, Users, BadgeCheck, Zap, TrendingUp, Clock, AlertTriangle, MapPin, Banknote, CheckCircle2, ChevronDown, BarChart2, Phone, LayoutDashboard, CalendarCheck, ThumbsUp, ThumbsDown } from "lucide-react";
+import { propertyStore, clientStore, matchStore, saleStore, activityStore, showingRequestStore, type Property, type Sale, type Client, type ShowingRequestWithDetails } from "@/lib/storage";
 
 function StatCard({ label, value, sub, icon: Icon, gradient }: {
   label: string; value: string | number; sub?: string;
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [openPanel, setOpenPanel] = useState<"collected" | "pending" | null>(null);
   const [needFollowUp, setNeedFollowUp] = useState<Client[]>([]);
+  const [showingRequests, setShowingRequests] = useState<ShowingRequestWithDetails[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -37,12 +38,14 @@ export default function DashboardPage() {
       clientStore.getAll(),
       matchStore.getAll(),
       saleStore.getAll(),
-    ]).then(([props, cls, mts, sls]) => {
+      showingRequestStore.getAllWithDetails().catch(() => [] as ShowingRequestWithDetails[]),
+    ]).then(([props, cls, mts, sls, reqs]) => {
       setProperties(props);
       const activeClients = cls.filter(c => c.intent === "aliyor" || c.intent === "kiraciyor");
       setBuyers(activeClients.length);
       setMatches(mts.length);
       setSales(sls);
+      setShowingRequests(reqs);
       setLoading(false);
       const activeIds = activeClients.map(c => c.id);
       activityStore.getLastByClients(activeIds).then(lastMap => {
@@ -55,6 +58,11 @@ export default function DashboardPage() {
       }).catch(() => {});
     }).catch(() => setLoading(false));
   }, []);
+
+  async function updateRequestStatus(id: number, status: "onaylandi" | "reddedildi") {
+    await showingRequestStore.updateStatus(id, status).catch(() => {});
+    setShowingRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  }
 
   const now = Date.now();
   const active = properties.filter(p => p.status === "musait");
@@ -313,6 +321,65 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Gösterim Talepleri */}
+      {showingRequests.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-violet-50/60">
+            <div className="flex items-center gap-2">
+              <CalendarCheck size={15} className="text-violet-600" />
+              <h2 className="font-semibold text-slate-800 text-sm">Gösterim Talepleri</h2>
+              {showingRequests.filter(r => r.status === "bekliyor").length > 0 && (
+                <span className="text-xs font-bold text-violet-700 bg-violet-100 px-2 py-0.5 rounded-full">
+                  {showingRequests.filter(r => r.status === "bekliyor").length} bekliyor
+                </span>
+              )}
+            </div>
+            <Link href="/alici" className="text-xs text-violet-600 hover:text-violet-700 font-medium">Portal →</Link>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {showingRequests.slice(0, 8).map(req => (
+              <div key={req.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  req.status === "bekliyor" ? "bg-amber-100" : req.status === "onaylandi" ? "bg-green-100" : "bg-slate-100"
+                }`}>
+                  <CalendarCheck size={13} className={
+                    req.status === "bekliyor" ? "text-amber-600" : req.status === "onaylandi" ? "text-green-600" : "text-slate-400"
+                  } />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">{req.property_title}</p>
+                  <p className="text-xs text-slate-400">{req.buyer_name} · {new Date(req.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</p>
+                </div>
+                {req.status === "bekliyor" ? (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => updateRequestStatus(req.id, "onaylandi")}
+                      title="Onayla"
+                      className="w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
+                    >
+                      <ThumbsUp size={12} />
+                    </button>
+                    <button
+                      onClick={() => updateRequestStatus(req.id, "reddedildi")}
+                      title="Reddet"
+                      className="w-7 h-7 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                    >
+                      <ThumbsDown size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    req.status === "onaylandi" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"
+                  }`}>
+                    {req.status === "onaylandi" ? "Onaylandı" : "Reddedildi"}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Takip gereken alıcılar */}
       {needFollowUp.length > 0 && (
