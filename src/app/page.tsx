@@ -883,6 +883,16 @@ export default function PortfolioPage() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   }), [properties, filters, sortBy]);
 
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    filtered.forEach(p => {
+      const key = p.type || "Diğer";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    });
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, "tr"));
+  }, [filtered]);
+
   async function deleteProperty(id: number) {
     await propertyStore.delete(id);
     setProperties(prev => prev.filter(p => p.id !== id));
@@ -1126,15 +1136,8 @@ export default function PortfolioPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {filtered.map((p) => {
-            const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
-            const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
-            const isOld = ageDays >= 30;
-            const shareMsg = buildShareMessage(p);
-            const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
-            const hasPhoto = p.photos && p.photos.length > 0;
-
+        <div className="flex flex-col gap-6">
+          {grouped.map(([type, props]) => {
             const TYPE_GRADIENTS: Record<string, string> = {
               daire: "from-blue-400 to-indigo-500",
               villa: "from-emerald-400 to-teal-500",
@@ -1146,88 +1149,126 @@ export default function PortfolioPage() {
               "müstakil ev": "from-green-400 to-emerald-500",
               default: "from-amber-400 to-amber-600",
             };
-            const gradient = TYPE_GRADIENTS[p.type] ?? TYPE_GRADIENTS.default;
 
             return (
-              <div key={p.id} onClick={() => setViewing(p)}
-                className="group bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex">
-
-                {/* Sol: küçük fotoğraf ya da renk şeridi */}
-                <div className={`relative flex-shrink-0 w-20 ${hasPhoto ? "" : `bg-gradient-to-b ${gradient}`} overflow-hidden`}>
-                  {hasPhoto ? (
-                    <img src={p.photos![0]} alt={p.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Home size={22} className="text-white/40" />
-                    </div>
-                  )}
-                  <button onClick={e => toggleFav(p.id, e)}
-                    className="absolute top-1.5 left-1/2 -translate-x-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors">
-                    <Heart size={10} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
-                  </button>
+              <div key={type}>
+                {/* Grup başlığı */}
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-sm font-bold text-slate-600 capitalize">{type}</h2>
+                  <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium">{props.length}</span>
+                  <div className="flex-1 h-px bg-slate-100" />
                 </div>
 
-                {/* Sağ: içerik */}
-                <div className="flex-1 min-w-0 p-3 flex flex-col gap-1">
-                  {/* Satır 1: başlık + durum + aksiyonlar */}
-                  <div className="flex items-center gap-2">
-                    <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${st.color}`}>{st.label}</span>
-                    <h3 className="font-semibold text-slate-800 text-xs leading-snug truncate flex-1">{p.title}</h3>
-                    {isOld && <span className="flex-shrink-0 text-[10px] text-orange-500 font-medium">{ageDays}g</span>}
-                    {/* Aksiyonlar — hover'da görünür */}
-                    <div className="flex-shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={e => { e.stopPropagation(); toggleCompare(p.id, e); }} title="Karşılaştır"
-                        className={`p-1 rounded transition-colors ${compareIds.includes(p.id) ? "text-blue-500" : "text-slate-400 hover:text-blue-500"}`}>
-                        <Scale size={11} />
-                      </button>
-                      <a href={shareHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="p-1 rounded text-slate-400 hover:text-green-500 transition-colors">
-                        <Share2 size={11} />
-                      </a>
-                      <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
-                        className="p-1 rounded text-slate-400 hover:text-emerald-500 transition-colors">
-                        <CheckCircle2 size={11} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setEditing(p); }}
-                        className="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors">
-                        <Pencil size={11} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
-                        className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors">
-                        <Trash2 size={11} />
-                      </button>
-                    </div>
-                  </div>
+                {/* Kartlar */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {props.map((p) => {
+                    const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
+                    const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
+                    const isOld = ageDays >= 30;
+                    const shareMsg = buildShareMessage(p);
+                    const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+                    const hasPhoto = p.photos && p.photos.length > 0;
+                    const gradient = TYPE_GRADIENTS[p.type] ?? TYPE_GRADIENTS.default;
 
-                  {/* Satır 2: fiyat + konum */}
-                  <div className="flex items-center gap-2">
-                    {p.price ? (
-                      <span className="font-bold text-slate-900 text-sm leading-none">
-                        {p.price.toLocaleString("tr-TR")} ₺{p.price_type === "kira" && <span className="text-xs font-normal text-slate-400">/ay</span>}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-slate-400 italic">Fiyat yok</span>
-                    )}
-                    <span className="text-slate-200">·</span>
-                    <span className="text-xs text-slate-400 truncate flex items-center gap-0.5">
-                      <MapPin size={9} className="flex-shrink-0" />
-                      {[p.district, p.city].filter(Boolean).join(", ")}
-                    </span>
-                  </div>
+                    return (
+                      <div key={p.id} onClick={() => setViewing(p)}
+                        className="bg-white rounded-xl border border-slate-200 hover:border-amber-200 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex">
 
-                  {/* Satır 3: tip + detaylar + eşleşme + danışman */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded capitalize">{p.type}</span>
-                    {p.rooms && <span className="text-[10px] text-slate-400">{p.rooms}</span>}
-                    {p.size && <span className="text-[10px] text-slate-400">{p.size}m²</span>}
-                    {p.danisan && <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{p.danisan}</span>}
-                    {(matchCountByProp[p.id] ?? 0) > 0 && (
-                      <Link href="/matches" onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
-                        <Zap size={8} /> {matchCountByProp[p.id]} alıcı
-                      </Link>
-                    )}
-                  </div>
+                        {/* Thumbnail */}
+                        <div className={`relative flex-shrink-0 w-24 overflow-hidden ${!hasPhoto ? `bg-gradient-to-b ${gradient}` : ""}`}>
+                          {hasPhoto ? (
+                            <img src={p.photos![0]} alt={p.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Home size={24} className="text-white/40" />
+                            </div>
+                          )}
+                          {/* Durum — fotoğraf altı */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/35 px-1.5 py-0.5">
+                            <span className="text-[10px] font-bold text-white">{st.label}</span>
+                          </div>
+                          {/* Favori */}
+                          <button onClick={e => toggleFav(p.id, e)}
+                            className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors">
+                            <Heart size={9} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
+                          </button>
+                        </div>
+
+                        {/* İçerik */}
+                        <div className="flex-1 min-w-0 p-3 flex flex-col gap-1.5">
+                          {/* Satır 1: Başlık + yaş + aksiyonlar */}
+                          <div className="flex items-start justify-between gap-1">
+                            <h3 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-1 flex-1">{p.title}</h3>
+                            <div className="flex-shrink-0 flex items-center gap-0.5 ml-1">
+                              {isOld && <span className="text-[10px] text-orange-500 font-medium mr-0.5">{ageDays}g</span>}
+                              <button onClick={e => { e.stopPropagation(); toggleCompare(p.id, e); }}
+                                className={`p-1 rounded transition-colors ${compareIds.includes(p.id) ? "text-blue-400" : "text-slate-300 hover:text-blue-500"}`}>
+                                <Scale size={11} />
+                              </button>
+                              <a href={shareHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                className="p-1 rounded text-slate-300 hover:text-green-500 transition-colors">
+                                <Share2 size={11} />
+                              </a>
+                              <button onClick={e => { e.stopPropagation(); setSelling(p); }}
+                                className="p-1 rounded text-slate-300 hover:text-emerald-500 transition-colors">
+                                <CheckCircle2 size={11} />
+                              </button>
+                              <button onClick={e => { e.stopPropagation(); setEditing(p); }}
+                                className="p-1 rounded text-slate-300 hover:text-amber-500 transition-colors">
+                                <Pencil size={11} />
+                              </button>
+                              <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
+                                className="p-1 rounded text-slate-300 hover:text-red-500 transition-colors">
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Satır 2: Fiyat */}
+                          <div>
+                            {p.price ? (
+                              <span className="font-bold text-amber-600 text-base leading-none">
+                                {p.price.toLocaleString("tr-TR")} ₺
+                                {p.price_type === "kira" && <span className="text-xs font-normal text-slate-400 ml-0.5">/ay</span>}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Fiyat belirtilmemiş</span>
+                            )}
+                          </div>
+
+                          {/* Satır 3: Konum */}
+                          {(p.district || p.city) && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                              <MapPin size={10} className="text-slate-400 flex-shrink-0" />
+                              <span className="truncate">{[p.district, p.city].filter(Boolean).join(", ")}</span>
+                            </div>
+                          )}
+
+                          {/* Satır 4: Oda · m² */}
+                          {(p.rooms || p.size) && (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              {p.rooms && <span>{p.rooms}</span>}
+                              {p.rooms && p.size && <span className="text-slate-300">·</span>}
+                              {p.size && <span>{p.size} m²</span>}
+                            </div>
+                          )}
+
+                          {/* Satır 5: Danışman + Eşleşme */}
+                          {(p.danisan || (matchCountByProp[p.id] ?? 0) > 0) && (
+                            <div className="flex items-center justify-between mt-auto">
+                              {p.danisan && <span className="text-[11px] text-amber-700 font-medium truncate">{p.danisan}</span>}
+                              {(matchCountByProp[p.id] ?? 0) > 0 && (
+                                <Link href="/matches" onClick={e => e.stopPropagation()}
+                                  className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
+                                  <Zap size={8} /> {matchCountByProp[p.id]} alıcı
+                                </Link>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
