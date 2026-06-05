@@ -103,68 +103,94 @@ export default function Navbar() {
       <nav className="sticky top-0 z-40 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-white/[0.07] shadow-2xl relative" style={{ boxShadow: "0 4px 24px -4px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.04) inset" }}>
         <div className="max-w-7xl mx-auto px-4">
           {/* Ana satır */}
-          <div className="flex items-center h-15 gap-2" style={{ height: "60px" }}>
-            {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2.5 mr-6 flex-shrink-0 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                <Building2 size={16} className="text-white" />
+          <div className="flex items-center" style={{ height: "60px" }}>
+
+            {/* MOBİL: [Hamburger] [Logo - ortada] [Kullanıcı] */}
+            <div className="flex md:hidden items-center w-full">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all flex-shrink-0"
+                aria-label="Menü"
+              >
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+              <Link href="/dashboard" className="flex items-center gap-2 flex-1 justify-center group">
+                <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Building2 size={14} className="text-white" />
+                </div>
+                <span className="font-bold text-base tracking-tight text-white">
+                  Estate<span className="text-amber-400">IQ</span>
+                </span>
+              </Link>
+
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-white/[0.08] transition-all flex-shrink-0"
+              >
+                <div className="w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-xs font-bold leading-none">
+                    {user.email?.[0]?.toUpperCase() ?? "U"}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-300 max-w-[80px] truncate hidden xs:block">
+                  {user.email?.split("@")[0]}
+                </span>
+              </button>
+            </div>
+
+            {/* MASAÜSTÜ: Logo + linkler + kullanıcı menüsü */}
+            <div className="hidden md:flex items-center w-full gap-2">
+              <Link href="/dashboard" className="flex items-center gap-2.5 mr-4 flex-shrink-0 group">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Building2 size={16} className="text-white" />
+                </div>
+                <span className="font-bold text-lg tracking-tight text-white">
+                  Estate<span className="text-amber-400">IQ</span>
+                </span>
+              </Link>
+
+              <div className="flex items-center gap-0.5">
+                {links.map(({ href, label, icon: Icon }) => {
+                  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                        active
+                          ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
+                          : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      <Icon size={15} />
+                      {label}
+                    </Link>
+                  );
+                })}
               </div>
-              <span className="font-bold text-lg tracking-tight text-white">
-                Estate<span className="text-amber-400">IQ</span>
-              </span>
-            </Link>
 
-            {/* Masaüstü linkleri */}
-            <div className="hidden md:flex items-center gap-0.5">
-              {links.map(({ href, label, icon: Icon }) => {
-                const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                      active
-                        ? "bg-amber-500 text-white shadow-sm shadow-amber-500/30"
-                        : "text-slate-400 hover:text-white hover:bg-white/[0.08]"
-                    }`}
-                  >
-                    <Icon size={15} />
-                    {label}
-                  </Link>
-                );
-              })}
+              <div className="flex items-center gap-1 ml-auto">
+                <button
+                  onClick={handleExport}
+                  disabled={exporting}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                >
+                  {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                  Dışa Aktar
+                </button>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={importing}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                >
+                  {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                  İçe Aktar
+                </button>
+                <div className="w-px h-5 bg-white/[0.1] mx-1" />
+                <UserMenu />
+              </div>
             </div>
-
-            {/* Masaüstü dışa/içe aktar + kullanıcı menüsü */}
-            <div className="hidden md:flex items-center gap-1 ml-auto">
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
-              >
-                {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                Dışa Aktar
-              </button>
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={importing}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all disabled:opacity-50"
-              >
-                {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-                İçe Aktar
-              </button>
-              <div className="w-px h-5 bg-white/[0.1] mx-1" />
-              <UserMenu />
-            </div>
-
-            {/* Mobil hamburger */}
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden ml-auto p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
-              aria-label="Menü"
-            >
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
 
           {/* Mobil açılır menü — absolute overlay, sayfayı aşağı itmez */}
