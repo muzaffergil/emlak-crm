@@ -29,7 +29,7 @@ const EMPTY_FORM = {
   neighborhood: "", price: "", price_type: "",
   size: "", rooms: "", floor: "", total_floors: "",
   status: "", description: "", features: "",
-  owner_name: "", owner_phone: "",
+  owner_name: "", owner_phone: "", danisan: "",
 };
 
 const inputCls = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400";
@@ -158,6 +158,7 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
         features: form.features.split(",").map(s => s.trim()).filter(Boolean),
         owner_name: form.owner_name.trim() || undefined,
         owner_phone: form.owner_phone.trim() || undefined,
+        danisan: form.danisan.trim() || undefined,
       });
 
       if (pendingFiles.length > 0) {
@@ -275,6 +276,7 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
                 <div><label className={labelCls}>Sahibi / İletişim Adı</label><input className={inputCls} value={form.owner_name} onChange={e => f("owner_name", e.target.value)} placeholder="ör. Ahmet Yılmaz" /></div>
                 <div><label className={labelCls}>Sahibi Telefon</label><input className={inputCls} value={form.owner_phone} onChange={e => f("owner_phone", e.target.value)} placeholder="ör. 0532 123 45 67" /></div>
               </div>
+              <div><label className={labelCls}>Danışman</label><input className={inputCls} value={form.danisan} onChange={e => f("danisan", e.target.value)} placeholder="ör. Muzaffer Aydıngüler" /></div>
 
               <div>
                 <label className={labelCls}>Açıklama</label>

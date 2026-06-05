@@ -42,6 +42,7 @@ function EditModal({ property, onClose, onSave }: {
     features: property.features.join(", "),
     owner_name: property.owner_name || "",
     owner_phone: property.owner_phone || "",
+    danisan: property.danisan || "",
   });
   const [photos, setPhotos] = useState<string[]>(property.photos ?? []);
   const [saving, setSaving] = useState(false);
@@ -75,6 +76,7 @@ function EditModal({ property, onClose, onSave }: {
       features: form.features.split(",").map(s => s.trim()).filter(Boolean),
       owner_name: form.owner_name.trim() || undefined,
       owner_phone: form.owner_phone.trim() || undefined,
+      danisan: form.danisan.trim() || undefined,
       photos: photos.length > 0 ? photos : undefined,
       price_history: updatedHistory,
     };
@@ -168,6 +170,10 @@ function EditModal({ property, onClose, onSave }: {
               <input className={inputCls} value={form.features} onChange={e => f("features", e.target.value)} placeholder="balkon, otopark, asansör" />
             </div>
 
+            <div className="md:col-span-2">
+              <label className={labelCls}>Danışman</label>
+              <input className={inputCls} value={form.danisan} onChange={e => f("danisan", e.target.value)} placeholder="ör. Muzaffer Aydıngüler" />
+            </div>
             <div>
               <label className={labelCls}>Sahip Adı</label>
               <input className={inputCls} value={form.owner_name} onChange={e => f("owner_name", e.target.value)} placeholder="Sahip adı soyadı" />
@@ -394,6 +400,16 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
                 {property.features.map(f => (
                   <span key={f} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{f}</span>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Danışman */}
+          {property.danisan && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Danışman</p>
+              <div className="bg-amber-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-amber-800">{property.danisan}</p>
               </div>
             </div>
           )}
@@ -1207,6 +1223,13 @@ export default function PortfolioPage() {
                       </Link>
                     )}
                   </div>
+
+                  {p.danisan && (
+                    <div className="flex items-center gap-1 pt-2">
+                      <span className="text-xs text-slate-400">Danışman:</span>
+                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{p.danisan}</span>
+                    </div>
+                  )}
 
                   {p.features.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-3 border-t border-slate-50">

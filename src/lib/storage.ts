@@ -32,6 +32,7 @@ export interface Property {
   owner_phone?: string;
   photos?: string[];
   price_history?: PriceHistoryEntry[];
+  danisan?: string;
   created_at: string;
 }
 
@@ -86,6 +87,7 @@ function toProperty(r: any): Property {
     raw_text: r.raw_text ?? undefined,
     owner_name: r.owner_name ?? undefined,
     owner_phone: r.owner_phone ?? undefined,
+    danisan: r.danisan ?? undefined,
     photos: Array.isArray(r.photos) && r.photos.length > 0 ? r.photos : undefined,
     price_history: Array.isArray(r.price_history) ? r.price_history : [],
     created_at: r.created_at,
