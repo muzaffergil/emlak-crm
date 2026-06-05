@@ -43,6 +43,7 @@ function EditModal({ property, onClose, onSave }: {
     owner_name: property.owner_name || "",
     owner_phone: property.owner_phone || "",
     danisan: property.danisan || "",
+    bina_yasi: property.bina_yasi != null ? String(property.bina_yasi) : "",
   });
   const [photos, setPhotos] = useState<string[]>(property.photos ?? []);
   const [saving, setSaving] = useState(false);
@@ -77,6 +78,7 @@ function EditModal({ property, onClose, onSave }: {
       owner_name: form.owner_name.trim() || undefined,
       owner_phone: form.owner_phone.trim() || undefined,
       danisan: form.danisan.trim() || undefined,
+      bina_yasi: form.bina_yasi ? Number(form.bina_yasi) : undefined,
       photos: photos.length > 0 ? photos : undefined,
       price_history: updatedHistory,
     };
@@ -170,7 +172,11 @@ function EditModal({ property, onClose, onSave }: {
               <input className={inputCls} value={form.features} onChange={e => f("features", e.target.value)} placeholder="balkon, otopark, asansör" />
             </div>
 
-            <div className="md:col-span-2">
+            <div>
+              <label className={labelCls}>Bina Yaşı</label>
+              <input type="number" min="0" max="100" className={inputCls} value={form.bina_yasi} onChange={e => f("bina_yasi", e.target.value)} placeholder="ör. 5" />
+            </div>
+            <div>
               <label className={labelCls}>Danışman</label>
               <input className={inputCls} value={form.danisan} onChange={e => f("danisan", e.target.value)} placeholder="ör. Muzaffer Aydıngüler" />
             </div>
@@ -401,6 +407,14 @@ function DetailModal({ property, onClose, onEdit, onDelete }: {
                   <span key={f} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">{f}</span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Bina Yaşı */}
+          {property.bina_yasi != null && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase mb-2">Bina Yaşı</p>
+              <p className="text-sm text-slate-700">{property.bina_yasi} yıl</p>
             </div>
           )}
 
