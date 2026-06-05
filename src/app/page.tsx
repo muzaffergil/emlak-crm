@@ -788,6 +788,7 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"tarih" | "fiyat_asc" | "fiyat_desc" | "tip" | "durum">("tarih");
   const [editing, setEditing] = useState<Property | null>(null);
   const [viewing, setViewing] = useState<Property | null>(null);
   const [selling, setSelling] = useState<Property | null>(null);
@@ -870,7 +871,13 @@ export default function PortfolioPage() {
     if (filters.sizeMin && p.size && p.size < Number(filters.sizeMin)) return false;
     if (filters.sizeMax && p.size && p.size > Number(filters.sizeMax)) return false;
     return true;
-  }), [properties, filters]);
+  }).sort((a, b) => {
+    if (sortBy === "fiyat_asc") return (a.price ?? 0) - (b.price ?? 0);
+    if (sortBy === "fiyat_desc") return (b.price ?? 0) - (a.price ?? 0);
+    if (sortBy === "tip") return a.type.localeCompare(b.type, "tr");
+    if (sortBy === "durum") return a.status.localeCompare(b.status, "tr");
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  }), [properties, filters, sortBy]);
 
   async function deleteProperty(id: number) {
     await propertyStore.delete(id);
@@ -991,11 +998,19 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* Arama + Filtre Aç */}
-      <div className="flex gap-2 mb-4">
+      {/* Arama + Sırala + Filtre */}
+      <div className="flex gap-2 mb-4 flex-wrap">
         <input type="text" placeholder="Başlık, ilçe, fiyat ara..." value={filters.search}
           onChange={e => set("search", e.target.value)}
-          className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400 bg-white shadow-sm" />
+          className="flex-1 min-w-40 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 transition-colors placeholder:text-slate-400 bg-white shadow-sm" />
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
+          className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-600 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400 cursor-pointer">
+          <option value="tarih">↓ Tarih</option>
+          <option value="fiyat_asc">↑ Fiyat (düşük)</option>
+          <option value="fiyat_desc">↓ Fiyat (yüksek)</option>
+          <option value="tip">A→Z Tip</option>
+          <option value="durum">Durum</option>
+        </select>
         <button onClick={() => setShowFilters(v => !v)}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all shadow-sm ${showFilters || activeCount > 1 ? "bg-amber-500 text-white border-amber-500 shadow-amber-200" : "border-slate-200 text-slate-600 hover:bg-slate-50 bg-white"}`}>
           <SlidersHorizontal size={14} />
