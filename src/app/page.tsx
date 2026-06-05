@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus, Scale, Heart } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus, Scale, Heart, Zap } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, shareStore, favoriteStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
 import { Toast } from "@/components/Toast";
 import { SingleLocationPicker } from "@/components/LocationPicker";
@@ -782,6 +782,7 @@ export default function PortfolioPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [favIds, setFavIds] = useState<Set<number>>(new Set());
+  const [matchCountByProp, setMatchCountByProp] = useState<Record<number, number>>({});
   const excelFileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -808,6 +809,11 @@ export default function PortfolioPage() {
       setLoading(false);
     }).catch(() => setLoading(false));
     favoriteStore.getAll().then(ids => setFavIds(new Set(ids))).catch(() => {});
+    matchStore.getAll().then(ms => {
+      const counts: Record<number, number> = {};
+      ms.forEach(m => { counts[m.property_id] = (counts[m.property_id] ?? 0) + 1; });
+      setMatchCountByProp(counts);
+    }).catch(() => {});
   }, []);
 
   // Dinamik seçenekler
@@ -1194,6 +1200,12 @@ export default function PortfolioPage() {
                     {p.size && <span className="flex items-center gap-1"><Ruler size={10} className="text-slate-400" /> {p.size} m²</span>}
                     {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={10} className="text-slate-400" /> {p.rooms}</span>}
                     {p.floor != null && <span>{p.floor}{p.total_floors ? `/${p.total_floors}` : ""}. kat</span>}
+                    {(matchCountByProp[p.id] ?? 0) > 0 && (
+                      <Link href="/matches" onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full ml-auto">
+                        <Zap size={9} /> {matchCountByProp[p.id]} alıcı
+                      </Link>
+                    )}
                   </div>
 
                   {p.features.length > 0 && (

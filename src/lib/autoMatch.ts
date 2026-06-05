@@ -1,24 +1,24 @@
-import { clientStore, propertyStore, matchStore } from "./storage";
+import { clientStore, propertyStore, matchStore, type Client } from "./storage";
 import { computeMatches } from "./claude";
 
-export async function runMatchForProperty(propertyId: number): Promise<number> {
+export async function runMatchForProperty(propertyId: number): Promise<{ count: number; clients: Client[] }> {
   const [allClients, allProperties] = await Promise.all([clientStore.getAll(), propertyStore.getAll()]);
   const property = allProperties.find(p => p.id === propertyId);
-  if (!property) return 0;
+  if (!property) return { count: 0, clients: [] };
 
   const activeClients = allClients.filter(c => ["aliyor", "kiraciyor"].includes(c.intent));
-  let count = 0;
+  const matched: Client[] = [];
 
   for (const client of activeClients) {
     const results = computeMatches(client, [property]);
     if (results.length > 0) {
+      matched.push(client);
       await matchStore.deleteByClient(client.id);
       const all = computeMatches(client, allProperties.filter(p => p.status === "musait"));
       await matchStore.insertMany(all.map(r => ({ client_id: client.id, property_id: r.property_id, score: r.score, reasons: r.reasons })));
-      count++;
     }
   }
-  return count;
+  return { count: matched.length, clients: matched };
 }
 
 export async function runMatchForClient(clientId: number): Promise<number> {

@@ -130,9 +130,11 @@ function toMatch(r: any): Match {
 
 export const propertyStore = {
   async getAll(): Promise<Property[]> {
+    const uid = await currentUserId();
     const { data, error } = await supabase
       .from("properties")
       .select("*")
+      .eq("user_id", uid)
       .order("id", { ascending: false });
     if (error) throw error;
     return (data ?? []).map(toProperty);
@@ -169,10 +171,12 @@ export const propertyStore = {
   },
 
   async delete(id: number): Promise<void> {
+    const uid = await currentUserId();
     const { error } = await supabase
       .from("properties")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", uid);
     if (error) throw error;
   },
 

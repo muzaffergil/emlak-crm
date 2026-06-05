@@ -1,10 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
-import { MessageSquare, ClipboardList, ArrowRight, Camera, X, AlertCircle, CheckCircle } from "lucide-react";
+import { MessageSquare, ClipboardList, ArrowRight, Camera, X, AlertCircle, CheckCircle, Zap, Phone, MessageCircle } from "lucide-react";
 import { parsePropertyFromText } from "@/lib/claude";
-import { propertyStore, type Property } from "@/lib/storage";
+import { propertyStore, type Property, type Client } from "@/lib/storage";
 import { runMatchForProperty } from "@/lib/autoMatch";
-import { Toast } from "@/components/Toast";
 import { SingleLocationPicker } from "@/components/LocationPicker";
 import { applyWatermark, uploadPropertyPhoto } from "@/lib/watermark";
 import PhotoManager from "@/components/PhotoManager";
@@ -93,7 +92,7 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
   const [added, setAdded] = useState<Property[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<Array<{ file: File; preview: string }>>([]);
-  const [matchToast, setMatchToast] = useState<string | null>(null);
+  const [matchedClients, setMatchedClients] = useState<Client[] | null>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
 
   function handlePhotoFiles(files: FileList) {
@@ -127,8 +126,8 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
       setAdded(prev => [property, ...prev]);
       onAdded(property);
       setText("");
-      runMatchForProperty(property.id).then(count => {
-        if (count > 0) setMatchToast(`${count} alıcıyla eşleşti!`);
+      runMatchForProperty(property.id).then(({ clients }) => {
+        if (clients.length > 0) setMatchedClients(clients);
       }).catch(() => {});
     } catch (err) {
       setTextError(err instanceof Error ? err.message : "Bir hata oluştu");
@@ -181,8 +180,8 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
       setForm({ ...EMPTY_FORM });
       setFormRooms([]);
       setCustomRooms("");
-      runMatchForProperty(property.id).then(count => {
-        if (count > 0) setMatchToast(`${count} alıcıyla eşleşti!`);
+      runMatchForProperty(property.id).then(({ clients }) => {
+        if (clients.length > 0) setMatchedClients(clients);
       }).catch(() => {});
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Bir hata oluştu");
@@ -191,7 +190,6 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
 
   return (
     <>
-    {matchToast && <Toast message={matchToast} onDone={() => setMatchToast(null)} />}
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -348,6 +346,47 @@ export default function AddPropertyModal({ onClose, onAdded }: Props) {
                 <AddedRow key={p.id} p={p}
                   onPhotosChange={(id, photos) => setAdded(prev => prev.map(x => x.id === id ? { ...x, photos } : x))} />
               ))}
+            </div>
+          )}
+
+          {/* Eşleşen alıcılar paneli */}
+          {matchedClients && matchedClients.length > 0 && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5">
+                  <Zap size={15} /> {matchedClients.length} alıcıyla eşleşti!
+                </p>
+                <button onClick={() => setMatchedClients(null)} className="text-amber-400 hover:text-amber-600">
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {matchedClients.map(c => (
+                  <div key={c.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-amber-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{c.name}</p>
+                      {c.budget_max && (
+                        <p className="text-xs text-slate-400">
+                          Bütçe: {c.budget_max.toLocaleString("tr-TR")} ₺&apos;ye kadar
+                        </p>
+                      )}
+                    </div>
+                    {c.phone && (
+                      <div className="flex gap-1">
+                        <a href={`tel:${c.phone}`}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors">
+                          <Phone size={13} />
+                        </a>
+                        <a href={`https://wa.me/${c.phone.replace(/\D/g, "")}`}
+                          target="_blank" rel="noreferrer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors">
+                          <MessageCircle size={13} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
