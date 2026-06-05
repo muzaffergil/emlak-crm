@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, Share2, Clock, History, Plus, Scale, Heart, Zap } from "lucide-react";
+import { Trash2, Home, TrendingUp, MapPin, Ruler, DoorOpen, X, SlidersHorizontal, Pencil, Phone, MessageCircle, CheckCircle2, Star, FileSpreadsheet, Upload, Loader2, Camera, ChevronLeft, ChevronRight, ChevronDown, Share2, Clock, History, Plus, Scale, Heart, Zap } from "lucide-react";
 import { propertyStore, clientStore, matchStore, saleStore, shareStore, favoriteStore, type Property, type Client, type PriceHistoryEntry } from "@/lib/storage";
 import { Toast } from "@/components/Toast";
 import { SingleLocationPicker } from "@/components/LocationPicker";
@@ -789,6 +789,16 @@ export default function PortfolioPage() {
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<"tarih" | "fiyat_asc" | "fiyat_desc" | "tip" | "durum" | "oda_asc" | "oda_desc">("tarih");
+  const [activeTab, setActiveTab] = useState<string>("tümü");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  function toggleGroup(type: string) {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      next.has(type) ? next.delete(type) : next.add(type);
+      return next;
+    });
+  }
   const [editing, setEditing] = useState<Property | null>(null);
   const [viewing, setViewing] = useState<Property | null>(null);
   const [selling, setSelling] = useState<Property | null>(null);
@@ -884,13 +894,19 @@ export default function PortfolioPage() {
   }), [properties, filters, sortBy]);
 
   const grouped = useMemo(() => {
+    const source = activeTab === "tümü" ? filtered : filtered.filter(p => p.type === activeTab);
     const map = new Map<string, typeof filtered>();
-    filtered.forEach(p => {
+    source.forEach(p => {
       const key = p.type || "Diğer";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     });
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, "tr"));
+  }, [filtered, activeTab]);
+
+  const allTypes = useMemo(() => {
+    const types = [...new Set(filtered.map(p => p.type || "Diğer"))].sort((a, b) => a.localeCompare(b, "tr"));
+    return types;
   }, [filtered]);
 
   async function deleteProperty(id: number) {
@@ -1103,6 +1119,41 @@ export default function PortfolioPage() {
         </div>
       )}
 
+      {/* Tip sekmeleri */}
+      {!loading && filtered.length > 0 && allTypes.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 scrollbar-hide">
+          <button
+            onClick={() => setActiveTab("tümü")}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === "tümü"
+                ? "bg-slate-800 text-white"
+                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            Tümü
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === "tümü" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-400"}`}>
+              {filtered.length}
+            </span>
+          </button>
+          {allTypes.map(type => (
+            <button
+              key={type}
+              onClick={() => setActiveTab(type)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+                activeTab === type
+                  ? "bg-amber-500 text-white"
+                  : "bg-white border border-slate-200 text-slate-500 hover:border-amber-300"
+              }`}
+            >
+              {type}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === type ? "bg-white/25 text-white" : "bg-slate-100 text-slate-400"}`}>
+                {filtered.filter(p => p.type === type).length}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Liste */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1150,17 +1201,22 @@ export default function PortfolioPage() {
               default: "from-amber-400 to-amber-600",
             };
 
+            const isCollapsed = collapsedGroups.has(type);
             return (
               <div key={type}>
                 {/* Grup başlığı */}
-                <div className="flex items-center gap-2 mb-2">
-                  <h2 className="text-sm font-bold text-slate-600 capitalize">{type}</h2>
+                <button
+                  onClick={() => toggleGroup(type)}
+                  className="w-full flex items-center gap-2 mb-2 group/header"
+                >
+                  <h2 className="text-sm font-bold text-slate-600 capitalize group-hover/header:text-slate-800 transition-colors">{type}</h2>
                   <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-medium">{props.length}</span>
                   <div className="flex-1 h-px bg-slate-100" />
-                </div>
+                  <ChevronDown size={15} className={`text-slate-400 flex-shrink-0 transition-transform duration-200 ${isCollapsed ? "-rotate-90" : ""}`} />
+                </button>
 
                 {/* Kartlar */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {!isCollapsed && <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {props.map((p) => {
                     const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
                     const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
@@ -1269,7 +1325,7 @@ export default function PortfolioPage() {
                       </div>
                     );
                   })}
-                </div>
+                </div>}
               </div>
             );
           })}
