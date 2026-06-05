@@ -67,6 +67,7 @@ export default function MatchesPage() {
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [collapsedTypes, setCollapsedTypes] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<"matches" | "score" | "price_asc" | "price_desc">("matches");
   const [portalLoading, setPortalLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -181,7 +182,12 @@ export default function MatchesPage() {
       if (!propMap.has(m.property_id)) propMap.set(m.property_id, { property: m.property, matches: [] });
       propMap.get(m.property_id)!.matches.push(m);
     });
-    const propGroups = [...propMap.values()].sort((a, b) => b.matches.length - a.matches.length);
+    const propGroups = [...propMap.values()].sort((a, b) => {
+      if (sort === "score") return Math.max(...b.matches.map(m => m.score)) - Math.max(...a.matches.map(m => m.score));
+      if (sort === "price_asc") return (a.property.price ?? 0) - (b.property.price ?? 0);
+      if (sort === "price_desc") return (b.property.price ?? 0) - (a.property.price ?? 0);
+      return b.matches.length - a.matches.length; // "matches" default
+    });
 
     // Sonra tipe göre grupla
     const typeMap = new Map<string, { property: Property; matches: RichMatch[] }[]>();
@@ -244,6 +250,29 @@ export default function MatchesPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{error}</div>
+      )}
+
+      {/* Sıralama */}
+      {matches.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-slate-400 font-medium mr-1">Sırala:</span>
+          {([
+            { key: "matches",   label: "En çok alıcı" },
+            { key: "score",     label: "En yüksek skor" },
+            { key: "price_asc", label: "Fiyat ↑" },
+            { key: "price_desc",label: "Fiyat ↓" },
+          ] as const).map(opt => (
+            <button key={opt.key}
+              onClick={() => setSort(opt.key)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                sort === opt.key
+                  ? "bg-violet-100 text-violet-700 border border-violet-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200 border border-transparent"
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
       )}
 
       {matches.length === 0 ? (
