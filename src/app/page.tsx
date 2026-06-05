@@ -788,7 +788,7 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({ ...EMPTY });
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"tarih" | "fiyat_asc" | "fiyat_desc" | "tip" | "durum">("tarih");
+  const [sortBy, setSortBy] = useState<"tarih" | "fiyat_asc" | "fiyat_desc" | "tip" | "durum" | "oda_asc" | "oda_desc">("tarih");
   const [editing, setEditing] = useState<Property | null>(null);
   const [viewing, setViewing] = useState<Property | null>(null);
   const [selling, setSelling] = useState<Property | null>(null);
@@ -876,6 +876,10 @@ export default function PortfolioPage() {
     if (sortBy === "fiyat_desc") return (b.price ?? 0) - (a.price ?? 0);
     if (sortBy === "tip") return a.type.localeCompare(b.type, "tr");
     if (sortBy === "durum") return a.status.localeCompare(b.status, "tr");
+    if (sortBy === "oda_asc" || sortBy === "oda_desc") {
+      const oda = (r: string | undefined) => r ? parseInt(r.split("+")[0]) || 0 : 0;
+      return sortBy === "oda_asc" ? oda(a.rooms) - oda(b.rooms) : oda(b.rooms) - oda(a.rooms);
+    }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   }), [properties, filters, sortBy]);
 
@@ -1008,6 +1012,8 @@ export default function PortfolioPage() {
           <option value="tarih">↓ Tarih</option>
           <option value="fiyat_asc">↑ Fiyat (düşük)</option>
           <option value="fiyat_desc">↓ Fiyat (yüksek)</option>
+          <option value="oda_asc">↑ Oda (2+1→5+1)</option>
+          <option value="oda_desc">↓ Oda (5+1→2+1)</option>
           <option value="tip">A→Z Tip</option>
           <option value="durum">Durum</option>
         </select>
