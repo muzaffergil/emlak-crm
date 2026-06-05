@@ -591,7 +591,16 @@ export default function ClientsPage() {
   const [viewingSeller, setViewingSeller] = useState<{ name: string; phone?: string; count: number; types: Set<string> } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<Client | null>(null);
   const [lastContacts, setLastContacts] = useState<Record<number, string>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+
+  function toggleSection(key: string) {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
 
   useEffect(() => {
     Promise.all([clientStore.getAll(), propertyStore.getAll()])
@@ -861,11 +870,14 @@ export default function ClientsPage() {
               const group = clients.filter((c) => ["aliyor", "kiraciyor"].includes(c.intent) );
               return (
                 <>
-                  <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm">
+                  <button onClick={() => toggleSection("alicilar")} className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm hover:bg-emerald-100/70 transition-colors">
                     <span className="font-semibold text-sm">Alıcılar</span>
-                    <span className="text-xs font-semibold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">{group.length} kişi</span>
-                  </div>
-                  {group.length === 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">{group.length} kişi</span>
+                      <ChevronDown size={15} className={`transition-transform duration-200 ${collapsedSections.has("alicilar") ? "" : "rotate-180"}`} />
+                    </div>
+                  </button>
+                  {!collapsedSections.has("alicilar") && (group.length === 0 ? (
                     <p className="text-xs text-slate-400 text-center py-6">Kayıt yok</p>
                   ) : (
                     <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
@@ -906,7 +918,7 @@ export default function ClientsPage() {
                         </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </>
               );
             })()}
@@ -914,11 +926,14 @@ export default function ClientsPage() {
 
           {/* Satıcılar kolonu — sadece portföy sahiplerinden türetilir */}
           <div>
-            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-blue-700 bg-blue-50 border-blue-200 shadow-sm">
+            <button onClick={() => toggleSection("saticilar")} className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-blue-700 bg-blue-50 border-blue-200 shadow-sm hover:bg-blue-100/70 transition-colors">
               <span className="font-semibold text-sm">Satıcılar</span>
-              <span className="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{derivedSellers.length} kişi</span>
-            </div>
-            {derivedSellers.length === 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{derivedSellers.length} kişi</span>
+                <ChevronDown size={15} className={`transition-transform duration-200 ${collapsedSections.has("saticilar") ? "" : "rotate-180"}`} />
+              </div>
+            </button>
+            {!collapsedSections.has("saticilar") && (derivedSellers.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-6">
                 Portföyde kayıtlı mülk sahibi yok.
               </p>
@@ -950,7 +965,7 @@ export default function ClientsPage() {
                   </div>
                 ))}
               </div>
-            )}
+            ))}
           </div>
         </div>
 
@@ -960,11 +975,14 @@ export default function ClientsPage() {
           if (pastBuyers.length === 0) return null;
           return (
             <div className="mt-6">
-              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-slate-600 bg-slate-50 border-slate-200 shadow-sm">
+              <button onClick={() => toggleSection("gecmis")} className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border mb-3 text-slate-600 bg-slate-50 border-slate-200 shadow-sm hover:bg-slate-100/70 transition-colors">
                 <span className="font-semibold text-sm">Geçmiş Alıcılar</span>
-                <span className="text-xs font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{pastBuyers.length} kişi</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">{pastBuyers.length} kişi</span>
+                  <ChevronDown size={15} className={`transition-transform duration-200 ${collapsedSections.has("gecmis") ? "" : "rotate-180"}`} />
+                </div>
+              </button>
+              {!collapsedSections.has("gecmis") && <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-1">
                 {pastBuyers.map((c) => (
                   <div key={c.id} onClick={() => setViewingClient(c)}
                     className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] p-4 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 opacity-80 hover:opacity-100">
@@ -994,7 +1012,7 @@ export default function ClientsPage() {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div>}
             </div>
           );
         })()}
