@@ -797,6 +797,21 @@ function RadioGroup({ label, options, value, onChange }: {
   );
 }
 
+const ROOM_ORDER = ["1+0","1+1","2+1","3+1","4+1","5+1","5+2","6+1"];
+const ROOM_GROUPED_TYPES = new Set(["daire","villa"]);
+
+const TYPE_GRADIENTS: Record<string, string> = {
+  daire: "from-blue-400 to-indigo-500",
+  villa: "from-emerald-400 to-teal-500",
+  arsa: "from-amber-400 to-orange-500",
+  dükkan: "from-purple-400 to-violet-500",
+  ofis: "from-sky-400 to-cyan-500",
+  depo: "from-slate-400 to-slate-500",
+  bina: "from-rose-400 to-pink-500",
+  "müstakil ev": "from-green-400 to-emerald-500",
+  default: "from-amber-400 to-amber-600",
+};
+
 export default function PortfolioPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -805,11 +820,20 @@ export default function PortfolioPage() {
   const [sortBy, setSortBy] = useState<"tarih" | "fiyat_asc" | "fiyat_desc" | "tip" | "durum" | "oda_asc" | "oda_desc">("tarih");
   const [activeTab, setActiveTab] = useState<string>("tümü");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedRoomGroups, setCollapsedRoomGroups] = useState<Set<string>>(new Set());
 
   function toggleGroup(type: string) {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
       next.has(type) ? next.delete(type) : next.add(type);
+      return next;
+    });
+  }
+
+  function toggleRoomGroup(key: string) {
+    setCollapsedRoomGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   }
@@ -1203,18 +1227,6 @@ export default function PortfolioPage() {
       ) : (
         <div className="flex flex-col gap-6">
           {grouped.map(([type, props]) => {
-            const TYPE_GRADIENTS: Record<string, string> = {
-              daire: "from-blue-400 to-indigo-500",
-              villa: "from-emerald-400 to-teal-500",
-              arsa: "from-amber-400 to-orange-500",
-              dükkan: "from-purple-400 to-violet-500",
-              ofis: "from-sky-400 to-cyan-500",
-              depo: "from-slate-400 to-slate-500",
-              bina: "from-rose-400 to-pink-500",
-              "müstakil ev": "from-green-400 to-emerald-500",
-              default: "from-amber-400 to-amber-600",
-            };
-
             const isCollapsed = collapsedGroups.has(type);
             return (
               <div key={type}>
@@ -1230,8 +1242,8 @@ export default function PortfolioPage() {
                 </button>
 
                 {/* Kartlar */}
-                {!isCollapsed && <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {props.map((p) => {
+                {!isCollapsed && (() => {
+                  function renderCard(p: Property) {
                     const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
                     const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
                     const isOld = ageDays >= 30;
@@ -1239,11 +1251,9 @@ export default function PortfolioPage() {
                     const shareHref = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
                     const hasPhoto = p.photos && p.photos.length > 0;
                     const gradient = TYPE_GRADIENTS[p.type] ?? TYPE_GRADIENTS.default;
-
                     return (
                       <div key={p.id} onClick={() => setViewing(p)}
                         className="bg-white rounded-xl border border-slate-200 hover:border-amber-200 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex">
-
                         {/* Thumbnail */}
                         <div className={`relative flex-shrink-0 w-24 overflow-hidden ${!hasPhoto ? `bg-gradient-to-b ${gradient}` : ""}`}>
                           {hasPhoto ? (
@@ -1253,20 +1263,16 @@ export default function PortfolioPage() {
                               <Home size={24} className="text-white/40" />
                             </div>
                           )}
-                          {/* Durum — fotoğraf altı */}
                           <div className="absolute bottom-0 left-0 right-0 bg-black/35 px-1.5 py-0.5">
                             <span className="text-[10px] font-bold text-white">{st.label}</span>
                           </div>
-                          {/* Favori */}
                           <button onClick={e => toggleFav(p.id, e)}
                             className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors">
                             <Heart size={9} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
                           </button>
                         </div>
-
                         {/* İçerik */}
                         <div className="flex-1 min-w-0 p-3 flex flex-col gap-1.5">
-                          {/* Satır 1: Başlık + yaş + aksiyonlar */}
                           <div className="flex items-start justify-between gap-1">
                             <h3 className="font-semibold text-slate-800 text-sm leading-snug line-clamp-1 flex-1">{p.title}</h3>
                             <div className="flex-shrink-0 flex items-center gap-0.5 ml-1">
@@ -1293,8 +1299,6 @@ export default function PortfolioPage() {
                               </button>
                             </div>
                           </div>
-
-                          {/* Satır 2: Fiyat */}
                           <div>
                             {p.price ? (
                               <span className="font-bold text-amber-600 text-base leading-none">
@@ -1305,16 +1309,12 @@ export default function PortfolioPage() {
                               <span className="text-xs text-slate-400 italic">Fiyat belirtilmemiş</span>
                             )}
                           </div>
-
-                          {/* Satır 3: Konum */}
                           {(p.district || p.city) && (
                             <div className="flex items-center gap-1 text-xs text-slate-500">
                               <MapPin size={10} className="text-slate-400 flex-shrink-0" />
                               <span className="truncate">{[p.district, p.city].filter(Boolean).join(", ")}</span>
                             </div>
                           )}
-
-                          {/* Satır 4: Oda · m² */}
                           {(p.rooms || p.size) && (
                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
                               {p.rooms && <span>{p.rooms}</span>}
@@ -1322,8 +1322,6 @@ export default function PortfolioPage() {
                               {p.size && <span>{p.size} m²</span>}
                             </div>
                           )}
-
-                          {/* Satır 5: Danışman + Eşleşme */}
                           {(p.danisan || (matchCountByProp[p.id] ?? 0) > 0) && (
                             <div className="flex items-center justify-between mt-auto">
                               {p.danisan && <span className="text-[11px] text-amber-700 font-medium truncate">{p.danisan}</span>}
@@ -1338,8 +1336,51 @@ export default function PortfolioPage() {
                         </div>
                       </div>
                     );
-                  })}
-                </div>}
+                  }
+
+                  if (ROOM_GROUPED_TYPES.has(type)) {
+                    const roomMap = new Map<string, Property[]>();
+                    props.forEach(p => {
+                      const key = p.rooms || "Belirtilmemiş";
+                      if (!roomMap.has(key)) roomMap.set(key, []);
+                      roomMap.get(key)!.push(p);
+                    });
+                    const sortedRooms = [...roomMap.entries()].sort(([a],[b]) => {
+                      const ai = ROOM_ORDER.indexOf(a), bi = ROOM_ORDER.indexOf(b);
+                      if (ai === -1 && bi === -1) return a.localeCompare(b,"tr");
+                      return ai === -1 ? 1 : bi === -1 ? -1 : ai - bi;
+                    });
+                    return (
+                      <div className="space-y-2">
+                        {sortedRooms.map(([roomKey, roomProps]) => {
+                          const subKey = `${type}-${roomKey}`;
+                          const isSubCollapsed = collapsedRoomGroups.has(subKey);
+                          return (
+                            <div key={subKey}>
+                              <button onClick={() => toggleRoomGroup(subKey)}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 mb-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-100 transition-colors">
+                                <span className="text-xs font-bold text-slate-600">{roomKey}</span>
+                                <span className="text-xs text-slate-400">{roomProps.length} mülk</span>
+                                <ChevronDown size={12} className={`ml-auto text-slate-400 transition-transform duration-200 ${isSubCollapsed ? "-rotate-90" : ""}`} />
+                              </button>
+                              {!isSubCollapsed && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {roomProps.map(renderCard)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {props.map(renderCard)}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
