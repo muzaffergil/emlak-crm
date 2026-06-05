@@ -37,9 +37,9 @@ function PortfoyList() {
       <Building2 size={40} className="text-slate-300 mb-3" />
       <p className="text-slate-500 font-medium">Henüz portföy bildirimi yok</p>
       <p className="text-sm text-slate-400 mt-1">Google Forms'u doldurunca burada görünecek</p>
-      <a href="https://forms.gle/Yhjzfs5zvQWE7VBGA" target="_blank" rel="noreferrer"
+      <a href="/form/portfoy"
         className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors">
-        <ExternalLink size={14} /> Formu Doldur
+        <ExternalLink size={14} /> Yeni Portföy Ekle
       </a>
     </div>
   );
@@ -134,9 +134,9 @@ function TalepList() {
       <ClipboardList size={40} className="text-slate-300 mb-3" />
       <p className="text-slate-500 font-medium">Henüz müşteri talebi yok</p>
       <p className="text-sm text-slate-400 mt-1">Google Forms'u doldurunca burada görünecek</p>
-      <a href="https://forms.gle/ZSabktMmmUiXqi1A9" target="_blank" rel="noreferrer"
+      <a href="/form/talep"
         className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors">
-        <ExternalLink size={14} /> Formu Doldur
+        <ExternalLink size={14} /> Yeni Talep Ekle
       </a>
     </div>
   );
@@ -198,8 +198,8 @@ export default function TaleplerPage() {
   const [tab, setTab] = useState<Tab>("portfoy");
 
   const formLinks: Record<Tab, string> = {
-    portfoy: "https://forms.gle/Yhjzfs5zvQWE7VBGA",
-    talep: "https://forms.gle/ZSabktMmmUiXqi1A9",
+    portfoy: "/form/portfoy",
+    talep: "/form/talep",
   };
 
   return (
@@ -214,9 +214,9 @@ export default function TaleplerPage() {
             <p className="text-sm text-slate-500">Google Forms'dan gelen kayıtlar</p>
           </div>
         </div>
-        <a href={formLinks[tab]} target="_blank" rel="noreferrer"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors">
-          <ExternalLink size={14} /> Formu Aç
+        <a href={formLinks[tab]}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-500 text-white hover:bg-amber-600 transition-colors">
+          <ExternalLink size={14} /> {tab === "portfoy" ? "Yeni Portföy" : "Yeni Talep"}
         </a>
       </div>
 
