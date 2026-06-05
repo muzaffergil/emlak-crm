@@ -66,6 +66,7 @@ export default function MatchesPage() {
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [collapsedTypes, setCollapsedTypes] = useState<Set<string>>(new Set());
   const [portalLoading, setPortalLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -162,14 +163,39 @@ export default function MatchesPage() {
     s >= 60 ? "bg-amber-100 text-amber-700" :
     "bg-slate-100 text-slate-600";
 
-  const groupedByProperty = (() => {
-    const map = new Map<number, { property: Property; matches: RichMatch[] }>();
+  const TYPE_ORDER = ["daire", "villa", "arsa", "dükkan", "ofis", "depo", "bina"];
+
+  function toggleType(type: string) {
+    setCollapsedTypes(prev => {
+      const next = new Set(prev);
+      next.has(type) ? next.delete(type) : next.add(type);
+      return next;
+    });
+  }
+
+  const groupedByType = (() => {
+    // Önce mülke göre grupla
+    const propMap = new Map<number, { property: Property; matches: RichMatch[] }>();
     matches.forEach(m => {
       if (!m.property) return;
-      if (!map.has(m.property_id)) map.set(m.property_id, { property: m.property, matches: [] });
-      map.get(m.property_id)!.matches.push(m);
+      if (!propMap.has(m.property_id)) propMap.set(m.property_id, { property: m.property, matches: [] });
+      propMap.get(m.property_id)!.matches.push(m);
     });
-    return [...map.values()].sort((a, b) => b.matches.length - a.matches.length);
+    const propGroups = [...propMap.values()].sort((a, b) => b.matches.length - a.matches.length);
+
+    // Sonra tipe göre grupla
+    const typeMap = new Map<string, { property: Property; matches: RichMatch[] }[]>();
+    propGroups.forEach(g => {
+      const type = g.property.type || "diger";
+      if (!typeMap.has(type)) typeMap.set(type, []);
+      typeMap.get(type)!.push(g);
+    });
+
+    // TYPE_ORDER'a göre sırala
+    const sorted = new Map<string, { property: Property; matches: RichMatch[] }[]>();
+    TYPE_ORDER.forEach(t => { if (typeMap.has(t)) sorted.set(t, typeMap.get(t)!); });
+    typeMap.forEach((v, k) => { if (!sorted.has(k)) sorted.set(k, v); });
+    return sorted;
   })();
 
   async function createPortalLink(propMatches: RichMatch[]) {
@@ -229,8 +255,32 @@ export default function MatchesPage() {
           <p className="text-sm text-center max-w-xs">Müşteri ve portföy ekledikten sonra &quot;Eşleştir&quot; butonuna tıklayın.</p>
         </div>
       ) : (
-        <div className="space-y-5">
-          {groupedByProperty.map(({ property, matches: propMatches }) => {
+        <div className="space-y-6">
+          {[...groupedByType.entries()].map(([type, propGroups]) => {
+            const typeStyle = TYPE_STYLES[type] ?? DEFAULT_STYLE;
+            const isCollapsed = collapsedTypes.has(type);
+            const totalMatches = propGroups.reduce((sum, g) => sum + g.matches.length, 0);
+
+            return (
+              <div key={type}>
+                {/* Tip grubu başlığı */}
+                <button
+                  onClick={() => toggleType(type)}
+                  className="w-full flex items-center gap-2 mb-3 px-1 group"
+                >
+                  <span className="text-base">{typeStyle.icon}</span>
+                  <h2 className="font-bold text-slate-700 text-sm">{TYPE_LABELS[type] ?? type}</h2>
+                  <span className="text-xs text-slate-400">
+                    {propGroups.length} mülk · {totalMatches} eşleşme
+                  </span>
+                  <div className={`ml-auto transition-colors ${isCollapsed ? "text-slate-400" : "text-slate-400"} group-hover:text-slate-600`}>
+                    {isCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+                  </div>
+                </button>
+
+                {!isCollapsed && (
+                  <div className="space-y-4">
+                    {propGroups.map(({ property, matches: propMatches }) => {
             const topScore = Math.max(...propMatches.map(m => m.score));
             const portalKey = `prop-${property.id}`;
             const style = TYPE_STYLES[property.type] ?? DEFAULT_STYLE;
@@ -414,6 +464,11 @@ export default function MatchesPage() {
                     );
                   })}
                 </div>
+              </div>
+            );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
