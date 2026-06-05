@@ -797,3 +797,37 @@ export const portfolioSubmissionStore = {
     if (error) throw error;
   },
 };
+
+export interface TalepSubmission {
+  id: number;
+  created_at: string;
+  tipi?: string;
+  oda_sayisi?: string;
+  butce?: string;
+  musteri_bilgileri?: string;
+  talep_alan_kisi?: string;
+}
+
+export const talepSubmissionStore = {
+  async getAll(): Promise<TalepSubmission[]> {
+    const { data, error } = await supabase
+      .from("talep_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(r => ({
+      id: Number(r.id),
+      created_at: r.created_at,
+      tipi: r.tipi ?? undefined,
+      oda_sayisi: r.oda_sayisi ?? undefined,
+      butce: r.butce ?? undefined,
+      musteri_bilgileri: r.musteri_bilgileri ?? undefined,
+      talep_alan_kisi: r.talep_alan_kisi ?? undefined,
+    }));
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase.from("talep_submissions").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
