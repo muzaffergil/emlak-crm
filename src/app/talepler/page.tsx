@@ -19,7 +19,12 @@ function PortfoyList() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   async function handleDelete(id: number) {
     if (!confirm("Bu kaydı silmek istiyor musunuz?")) return;
@@ -116,7 +121,12 @@ function TalepList() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   async function handleDelete(id: number) {
     if (!confirm("Bu kaydı silmek istiyor musunuz?")) return;
