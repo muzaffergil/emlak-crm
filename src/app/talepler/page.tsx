@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   portfolioSubmissionStore, type PortfolioSubmission,
   talepSubmissionStore, type TalepSubmission,
@@ -12,8 +12,10 @@ function PortfoyList() {
   const [items, setItems] = useState<PortfolioSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const busyRef = useRef(false);
 
   async function load() {
+    if (busyRef.current) return;
     setLoading(true);
     try { setItems(await portfolioSubmissionStore.getAll()); }
     finally { setLoading(false); }
@@ -27,12 +29,16 @@ function PortfoyList() {
   }, []);
 
   async function handleDelete(id: number) {
-    if (!confirm("Bu kaydı silmek istiyor musunuz?")) return;
+    busyRef.current = true;
+    if (!confirm("Bu kaydı silmek istiyor musunuz?")) { busyRef.current = false; return; }
     setDeletingId(id);
     try {
       await portfolioSubmissionStore.delete(id);
       setItems(prev => prev.filter(s => s.id !== id));
-    } finally { setDeletingId(null); }
+    } finally {
+      setDeletingId(null);
+      busyRef.current = false;
+    }
   }
 
   if (loading) return <div className="flex justify-center py-20 text-slate-400">Yükleniyor...</div>;
@@ -125,8 +131,10 @@ function TalepList() {
   const [items, setItems] = useState<TalepSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const busyRef = useRef(false);
 
   async function load() {
+    if (busyRef.current) return;
     setLoading(true);
     try { setItems(await talepSubmissionStore.getAll()); }
     finally { setLoading(false); }
@@ -140,12 +148,16 @@ function TalepList() {
   }, []);
 
   async function handleDelete(id: number) {
-    if (!confirm("Bu kaydı silmek istiyor musunuz?")) return;
+    busyRef.current = true;
+    if (!confirm("Bu kaydı silmek istiyor musunuz?")) { busyRef.current = false; return; }
     setDeletingId(id);
     try {
       await talepSubmissionStore.delete(id);
       setItems(prev => prev.filter(s => s.id !== id));
-    } finally { setDeletingId(null); }
+    } finally {
+      setDeletingId(null);
+      busyRef.current = false;
+    }
   }
 
   if (loading) return <div className="flex justify-center py-20 text-slate-400">Yükleniyor...</div>;
