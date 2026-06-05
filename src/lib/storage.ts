@@ -759,3 +759,41 @@ export const portalStore = {
     }));
   },
 };
+
+export interface PortfolioSubmission {
+  id: number;
+  created_at: string;
+  gayrimenkul_tipi?: string;
+  islem_turu?: string;
+  konum?: string;
+  oda_sayisi?: string;
+  fiyat?: string;
+  musteri_bilgileri?: string;
+  gorsel_urls?: string;
+}
+
+export const portfolioSubmissionStore = {
+  async getAll(): Promise<PortfolioSubmission[]> {
+    const { data, error } = await supabase
+      .from("portfolio_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(r => ({
+      id: Number(r.id),
+      created_at: r.created_at,
+      gayrimenkul_tipi: r.gayrimenkul_tipi ?? undefined,
+      islem_turu: r.islem_turu ?? undefined,
+      konum: r.konum ?? undefined,
+      oda_sayisi: r.oda_sayisi ?? undefined,
+      fiyat: r.fiyat ?? undefined,
+      musteri_bilgileri: r.musteri_bilgileri ?? undefined,
+      gorsel_urls: r.gorsel_urls ?? undefined,
+    }));
+  },
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase.from("portfolio_submissions").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
