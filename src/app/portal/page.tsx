@@ -125,7 +125,7 @@ function PortalContent() {
         <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
           <Building2 size={14} className="text-white" />
         </div>
-        <span className="font-bold text-white text-sm">Estate<span className="text-amber-400">IQ</span></span>
+        <span className="font-bold text-white text-sm">Nestro<span className="text-amber-400">TR</span></span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6">
@@ -145,7 +145,7 @@ function PortalContent() {
         </div>
 
         <div className="text-center mt-8 pb-8">
-          <p className="text-xs text-slate-400">EstateIQ ile oluşturuldu</p>
+          <p className="text-xs text-slate-400">NestroTR ile oluşturuldu</p>
         </div>
       </div>
     </div>

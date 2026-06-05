@@ -8,7 +8,7 @@ import AuthGate from "@/components/AuthGate";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EstateIQ",
+  title: "NestroTR",
   description: "Emlak portföy ve müşteri yönetimi",
 };
 

@@ -341,7 +341,7 @@ export default function AddPropertyPage() {
 
           {/* Fotoğraflar */}
           <div>
-            <label className={labelCls}>Fotoğraflar (opsiyonel — EstateIQ filigranı otomatik eklenir)</label>
+            <label className={labelCls}>Fotoğraflar (opsiyonel — NestroTR filigranı otomatik eklenir)</label>
             <div className="flex flex-wrap gap-2">
               {pendingFiles.map(({ preview }, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-slate-200 group">

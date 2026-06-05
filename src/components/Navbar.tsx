@@ -120,7 +120,7 @@ export default function Navbar() {
                   <Building2 size={14} className="text-white" />
                 </div>
                 <span className="font-bold text-base tracking-tight text-white">
-                  Estate<span className="text-amber-400">IQ</span>
+                  Nestro<span className="text-amber-400">TR</span>
                 </span>
               </Link>
 
@@ -146,7 +146,7 @@ export default function Navbar() {
                   <Building2 size={16} className="text-white" />
                 </div>
                 <span className="font-bold text-lg tracking-tight text-white">
-                  Estate<span className="text-amber-400">IQ</span>
+                  Nestro<span className="text-amber-400">TR</span>
                 </span>
               </Link>
 

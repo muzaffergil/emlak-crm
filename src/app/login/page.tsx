@@ -85,7 +85,7 @@ export default function LoginPage() {
           </div>
           <div className="mt-4">
             <span className="text-3xl font-bold tracking-tight text-white">
-              Estate<span className="text-amber-400">IQ</span>
+              Nestro<span className="text-amber-400">TR</span>
             </span>
           </div>
           <p className="mt-1.5 text-sm text-slate-400">Emlak portföy ve müşteri yönetimi</p>
@@ -336,7 +336,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-5">
-          EstateIQ · Emlak portföy yönetim sistemi
+          NestroTR · Emlak portföy yönetim sistemi
         </p>
       </div>
     </div>

@@ -184,7 +184,7 @@ function EditModal({ property, onClose, onSave }: {
 
             <div className="md:col-span-2">
               <label className={labelCls}>
-                <span className="flex items-center gap-1.5"><Camera size={13} /> Fotoğraflar (EstateIQ filigranı eklenir)</span>
+                <span className="flex items-center gap-1.5"><Camera size={13} /> Fotoğraflar (NestroTR filigranı eklenir)</span>
               </label>
               <PhotoManager
                 propertyId={property.id}
@@ -688,7 +688,7 @@ function buildShareMessage(p: Property): string {
     details && `📐 ${details}`,
     p.owner_phone && `📞 ${p.owner_phone}`,
     ``,
-    `EstateIQ Portföy`,
+    `NestroTR Portföy`,
   ].filter(Boolean).join("\n");
 }
 
