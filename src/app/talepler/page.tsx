@@ -87,10 +87,21 @@ function PortfoyList() {
               )}
               {s.gorsel_urls && (
                 <div className="sm:col-span-2">
-                  <a href={s.gorsel_urls} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                    <ExternalLink size={11} /> Görseller (Drive)
-                  </a>
+                  {s.gorsel_urls.startsWith("http") ? (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {s.gorsel_urls.split(", ").map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`Görsel ${i+1}`} className="w-16 h-16 object-cover rounded-lg border border-slate-200 hover:opacity-80 transition-opacity" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <a href={s.gorsel_urls} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                      <ExternalLink size={11} /> Görseller (Drive)
+                    </a>
+                  )}
                 </div>
               )}
             </div>
