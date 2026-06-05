@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Zap, RefreshCw, Star, MapPin, TrendingUp, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone, MessageCircle, Link, Loader2 } from "lucide-react";
+import { Zap, RefreshCw, MapPin, X, Home, Ruler, BedDouble, Building2, Tag, FileText, Phone, MessageCircle, Link, Loader2, ChevronRight, Users } from "lucide-react";
 import { clientStore, propertyStore, matchStore, portalStore, type Match, type Property } from "@/lib/storage";
 import { computeMatches } from "@/lib/claude";
 import { Toast } from "@/components/Toast";
@@ -388,19 +388,24 @@ export default function MatchesPage() {
     s >= 60 ? "text-amber-600 bg-amber-50" :
     "text-slate-600 bg-slate-100";
 
-  const grouped = matches.reduce<Record<string, RichMatch[]>>((acc, m) => {
-    if (!acc[m.client_name]) acc[m.client_name] = [];
-    acc[m.client_name].push(m);
-    return acc;
-  }, {});
+  // Portföy odaklı gruplama — en çok müşteri eşleşen mülk en üstte
+  const groupedByProperty = (() => {
+    const map = new Map<number, { property: Property; matches: RichMatch[] }>();
+    matches.forEach(m => {
+      if (!m.property) return;
+      if (!map.has(m.property_id)) map.set(m.property_id, { property: m.property, matches: [] });
+      map.get(m.property_id)!.matches.push(m);
+    });
+    return [...map.values()].sort((a, b) => b.matches.length - a.matches.length);
+  })();
 
-  async function createPortalLink(clientMatches: RichMatch[]) {
-    const first = clientMatches[0];
+  async function createPortalLink(propMatches: RichMatch[]) {
+    const first = propMatches[0];
     if (!first) return;
-    const key = first.client_name;
+    const key = `prop-${first.property_id}`;
     setPortalLoading(key);
     try {
-      const props = clientMatches.map(m => m.property).filter(Boolean) as Property[];
+      const props = propMatches.map(m => m.property).filter(Boolean) as Property[];
       const id = await portalStore.create(first.client_name, first.client_phone, props);
       const base = window.location.origin + (process.env.NEXT_PUBLIC_BASE_PATH || "");
       const url = `${base}/portal?id=${id}`;
@@ -451,66 +456,108 @@ export default function MatchesPage() {
           <p className="text-sm text-center max-w-xs">Müşteri ve portföy ekledikten sonra &quot;Eşleştir&quot; butonuna tıklayın.</p>
         </div>
       ) : (
-        <div className="space-y-5">
-          {Object.entries(grouped).map(([clientName, clientMatches]) => (
-            <div key={clientName} className="bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] overflow-hidden">
-              <div className="bg-slate-50/60 px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-violet-700 font-bold text-sm">{clientName.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800 text-sm">{clientName}</h3>
-                    {clientMatches[0]?.client_phone && (
-                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5"><Phone size={10} />{clientMatches[0].client_phone}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => createPortalLink(clientMatches)}
-                    disabled={portalLoading === clientName}
-                    title="Müşteri portali oluştur ve linki kopyala"
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 text-xs font-medium transition-colors disabled:opacity-50"
-                  >
-                    {portalLoading === clientName ? <Loader2 size={12} className="animate-spin" /> : <Link size={12} />}
-                    Portal
-                  </button>
-                  <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">{clientMatches.length} eşleşme</span>
-                </div>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {clientMatches.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelected(m)}
-                    className="w-full px-5 py-3.5 flex items-start gap-3 hover:bg-amber-50/50 transition-colors text-left group"
-                  >
-                    <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm font-bold flex-shrink-0 ${scoreColor(m.score)}`}>
-                      <Star size={11} /> {m.score}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm">{m.property_title}</p>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
-                        <span className="flex items-center gap-1"><MapPin size={10} />{[m.property_district, m.property_city].filter(Boolean).join(", ")}</span>
-                        {m.price && <span className="flex items-center gap-1 font-medium text-slate-600"><TrendingUp size={10} />{m.price.toLocaleString("tr-TR")} ₺{m.price_type === "kira" ? "/ay" : ""}</span>}
-                        {m.size && <span>{m.size} m²</span>}
-                        {m.rooms && <span>{m.rooms}</span>}
+        <div className="space-y-4">
+          {groupedByProperty.map(({ property, matches: propMatches }) => {
+            const topScore = Math.max(...propMatches.map(m => m.score));
+            const portalKey = `prop-${property.id}`;
+            return (
+              <div key={property.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+                {/* Portföy başlığı */}
+                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-slate-800 text-sm leading-snug">{property.title}</h3>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-400">
+                        <MapPin size={10} className="flex-shrink-0" />
+                        <span>{[property.district, property.city].filter(Boolean).join(", ")}</span>
                       </div>
-                      {m.reasons.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {m.reasons.map((r, i) => (
-                            <span key={i} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{r}</span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                    <span className="text-slate-300 group-hover:text-slate-400 transition-colors self-center flex-shrink-0 text-base">›</span>
-                  </button>
-                ))}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => createPortalLink(propMatches)}
+                        disabled={portalLoading === portalKey}
+                        title="Müşteri portali oluştur"
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 text-xs font-medium transition-colors disabled:opacity-50"
+                      >
+                        {portalLoading === portalKey ? <Loader2 size={11} className="animate-spin" /> : <Link size={11} />}
+                        Portal
+                      </button>
+                      <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                        <Users size={11} className="text-amber-600" />
+                        <span className="text-xs font-bold text-amber-700">{propMatches.length} alıcı</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Portföy detayları */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    {property.price && (
+                      <span className="font-bold text-amber-600 text-sm">
+                        {property.price.toLocaleString("tr-TR")} ₺{property.price_type === "kira" ? "/ay" : ""}
+                      </span>
+                    )}
+                    {property.price && (property.type || property.rooms || property.size) && <span className="text-slate-300">·</span>}
+                    {property.type && <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded capitalize">{property.type}</span>}
+                    {property.rooms && <span className="text-xs text-slate-500">{property.rooms}</span>}
+                    {property.size && <span className="text-xs text-slate-500">{property.size} m²</span>}
+                    <div className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-lg ${scoreColor(topScore)}`}>
+                      En yüksek: %{topScore}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Eşleşen müşteriler */}
+                <div className="divide-y divide-slate-50">
+                  {propMatches.map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 px-4 py-3 hover:bg-amber-50/40 transition-colors">
+                      {/* Skor badge */}
+                      <div className={`flex-shrink-0 text-xs font-bold px-2 py-1 rounded-lg min-w-[42px] text-center ${scoreColor(m.score)}`}>
+                        %{m.score}
+                      </div>
+
+                      {/* Müşteri bilgisi */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 text-sm">{m.client_name}</p>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5 flex-wrap">
+                          {m.client_budget_max && (
+                            <span>B: {m.client_budget_max.toLocaleString("tr-TR")} ₺</span>
+                          )}
+                          {m.client_rooms && m.client_rooms.length > 0 && (
+                            <span>{m.client_rooms.join(", ")}</span>
+                          )}
+                          {m.reasons.length > 0 && (
+                            <span className="text-emerald-600 truncate max-w-[120px]">{m.reasons[0]}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Aksiyonlar */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {m.client_phone && (
+                          <>
+                            <a href={`tel:${m.client_phone}`} onClick={e => e.stopPropagation()}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors" title="Ara">
+                              <Phone size={13} />
+                            </a>
+                            <a href={`https://wa.me/${m.client_phone.replace(/\D/g, "").replace(/^0/, "90")}?text=${encodeURIComponent(buildClientMessage(property, m.client_name, m.score, m.reasons))}`}
+                              target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-green-100 text-slate-500 hover:text-green-600 transition-colors" title="WhatsApp">
+                              <MessageCircle size={13} />
+                            </a>
+                          </>
+                        )}
+                        <button onClick={() => setSelected(m)}
+                          className="p-1.5 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Detay">
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
