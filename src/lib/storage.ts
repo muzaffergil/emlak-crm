@@ -794,6 +794,11 @@ export const portfolioSubmissionStore = {
     }));
   },
 
+  async update(id: number, data: Partial<Omit<PortfolioSubmission, "id" | "created_at">>): Promise<void> {
+    const { error } = await supabase.from("portfolio_submissions").update(data).eq("id", id);
+    if (error) throw error;
+  },
+
   async delete(id: number): Promise<void> {
     const { error } = await supabase.from("portfolio_submissions").delete().eq("id", id);
     if (error) throw error;
@@ -826,6 +831,11 @@ export const talepSubmissionStore = {
       musteri_bilgileri: r.musteri_bilgileri ?? undefined,
       talep_alan_kisi: r.talep_alan_kisi ?? undefined,
     }));
+  },
+
+  async update(id: number, data: Partial<Omit<TalepSubmission, "id" | "created_at">>): Promise<void> {
+    const { error } = await supabase.from("talep_submissions").update(data).eq("id", id);
+    if (error) throw error;
   },
 
   async delete(id: number): Promise<void> {
