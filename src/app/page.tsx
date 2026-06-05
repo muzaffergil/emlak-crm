@@ -1105,7 +1105,7 @@ export default function PortfolioPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {filtered.map((p) => {
             const st = STATUS_LABELS[p.status] || { label: p.status, color: "bg-slate-100 text-slate-700" };
             const ageDays = Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000);
@@ -1129,119 +1129,84 @@ export default function PortfolioPage() {
 
             return (
               <div key={p.id} onClick={() => setViewing(p)}
-                className="group bg-white rounded-2xl border border-slate-100 shadow-sm ring-1 ring-black/[0.03] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden">
+                className="group bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden flex">
 
-                {/* Fotoğraf ya da gradient placeholder */}
-                <div className="relative h-44 overflow-hidden">
+                {/* Sol: küçük fotoğraf ya da renk şeridi */}
+                <div className={`relative flex-shrink-0 w-20 ${hasPhoto ? "" : `bg-gradient-to-b ${gradient}`} overflow-hidden`}>
                   {hasPhoto ? (
-                    <img src={p.photos![0]} alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={p.photos![0]} alt={p.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-                      <Home size={40} className="text-white/30" />
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Home size={22} className="text-white/40" />
                     </div>
                   )}
-                  {/* Durum rozeti */}
-                  <div className="absolute top-3 left-3">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm ${st.color} shadow-sm`}>
-                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />{st.label}
-                    </span>
-                  </div>
-                  {/* Yaşlı badge + favori */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    {isOld && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/90 text-white backdrop-blur-sm shadow-sm">
-                        <Clock size={9} /> {ageDays}g
-                      </span>
-                    )}
-                    <button
-                      onClick={e => toggleFav(p.id, e)}
-                      className="w-7 h-7 flex items-center justify-center rounded-full backdrop-blur-sm bg-black/30 hover:bg-black/50 transition-colors"
-                      title={favIds.has(p.id) ? "Favoriden çıkar" : "Favorilere ekle"}
-                    >
-                      <Heart size={12} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
-                    </button>
-                  </div>
-                  {/* Hover aksiyonlar */}
-                  <div className="absolute bottom-0 left-0 right-0 p-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                    <div className="flex gap-1 bg-black/40 backdrop-blur-sm rounded-xl p-1">
-                      <button onClick={e => toggleCompare(p.id, e)} title="Karşılaştırmaya ekle/çıkar"
-                        className={`p-1.5 rounded-lg transition-colors ${compareIds.includes(p.id) ? "text-blue-300 bg-white/20" : "text-white/80 hover:text-blue-300 hover:bg-white/10"}`}>
-                        <Scale size={13} />
-                      </button>
-                      <a href={shareHref} target="_blank" rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()} title="WhatsApp'ta paylaş"
-                        className="p-1.5 rounded-lg text-white/80 hover:text-green-400 hover:bg-white/10 transition-colors">
-                        <Share2 size={13} />
-                      </a>
-                      <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
-                        className="p-1.5 rounded-lg text-white/80 hover:text-emerald-400 hover:bg-white/10 transition-colors">
-                        <CheckCircle2 size={13} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setEditing(p); }}
-                        className="p-1.5 rounded-lg text-white/80 hover:text-amber-400 hover:bg-white/10 transition-colors">
-                        <Pencil size={13} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
-                        className="p-1.5 rounded-lg text-white/80 hover:text-red-400 hover:bg-white/10 transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
+                  <button onClick={e => toggleFav(p.id, e)}
+                    className="absolute top-1.5 left-1/2 -translate-x-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 transition-colors">
+                    <Heart size={10} className={favIds.has(p.id) ? "text-red-400 fill-red-400" : "text-white/70"} />
+                  </button>
                 </div>
 
-                {/* İçerik */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-semibold text-slate-900 text-sm leading-snug">{p.title}</h3>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 flex-shrink-0">
-                      {p.price_type === "kira" ? "Kira" : "Satış"}
+                {/* Sağ: içerik */}
+                <div className="flex-1 min-w-0 p-3 flex flex-col gap-1">
+                  {/* Satır 1: başlık + durum + aksiyonlar */}
+                  <div className="flex items-center gap-2">
+                    <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${st.color}`}>{st.label}</span>
+                    <h3 className="font-semibold text-slate-800 text-xs leading-snug truncate flex-1">{p.title}</h3>
+                    {isOld && <span className="flex-shrink-0 text-[10px] text-orange-500 font-medium">{ageDays}g</span>}
+                    {/* Aksiyonlar — hover'da görünür */}
+                    <div className="flex-shrink-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={e => { e.stopPropagation(); toggleCompare(p.id, e); }} title="Karşılaştır"
+                        className={`p-1 rounded transition-colors ${compareIds.includes(p.id) ? "text-blue-500" : "text-slate-400 hover:text-blue-500"}`}>
+                        <Scale size={11} />
+                      </button>
+                      <a href={shareHref} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="p-1 rounded text-slate-400 hover:text-green-500 transition-colors">
+                        <Share2 size={11} />
+                      </a>
+                      <button onClick={e => { e.stopPropagation(); setSelling(p); }} title="Satışı tamamla"
+                        className="p-1 rounded text-slate-400 hover:text-emerald-500 transition-colors">
+                        <CheckCircle2 size={11} />
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); setEditing(p); }}
+                        className="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors">
+                        <Pencil size={11} />
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); setConfirmDelete(p); }}
+                        className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors">
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Satır 2: fiyat + konum */}
+                  <div className="flex items-center gap-2">
+                    {p.price ? (
+                      <span className="font-bold text-slate-900 text-sm leading-none">
+                        {p.price.toLocaleString("tr-TR")} ₺{p.price_type === "kira" && <span className="text-xs font-normal text-slate-400">/ay</span>}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Fiyat yok</span>
+                    )}
+                    <span className="text-slate-200">·</span>
+                    <span className="text-xs text-slate-400 truncate flex items-center gap-0.5">
+                      <MapPin size={9} className="flex-shrink-0" />
+                      {[p.district, p.city].filter(Boolean).join(", ")}
                     </span>
                   </div>
 
-                  {p.price && (
-                    <p className="text-xl font-bold text-slate-900 mb-2 leading-tight">
-                      {p.price.toLocaleString("tr-TR")} ₺
-                      {p.price_type === "kira" && <span className="text-sm font-normal text-slate-400">/ay</span>}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-1 text-xs text-slate-400 mb-3">
-                    <MapPin size={11} className="text-slate-300 flex-shrink-0" />
-                    {[p.neighborhood, p.district, p.city].filter(Boolean).join(", ")}
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
-                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full capitalize font-medium">{p.type}</span>
-                    {p.size && <span className="flex items-center gap-1"><Ruler size={10} className="text-slate-400" /> {p.size} m²</span>}
-                    {p.rooms && <span className="flex items-center gap-1"><DoorOpen size={10} className="text-slate-400" /> {p.rooms}</span>}
-                    {p.floor != null && <span>{p.floor}{p.total_floors ? `/${p.total_floors}` : ""}. kat</span>}
+                  {/* Satır 3: tip + detaylar + eşleşme + danışman */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded capitalize">{p.type}</span>
+                    {p.rooms && <span className="text-[10px] text-slate-400">{p.rooms}</span>}
+                    {p.size && <span className="text-[10px] text-slate-400">{p.size}m²</span>}
+                    {p.danisan && <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{p.danisan}</span>}
                     {(matchCountByProp[p.id] ?? 0) > 0 && (
                       <Link href="/matches" onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full ml-auto">
-                        <Zap size={9} /> {matchCountByProp[p.id]} alıcı
+                        className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
+                        <Zap size={8} /> {matchCountByProp[p.id]} alıcı
                       </Link>
                     )}
                   </div>
-
-                  {p.danisan && (
-                    <div className="flex items-center gap-1 pt-2">
-                      <span className="text-xs text-slate-400">Danışman:</span>
-                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{p.danisan}</span>
-                    </div>
-                  )}
-
-                  {p.features.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-3 border-t border-slate-50">
-                      {p.features.slice(0, 3).map(f => (
-                        <span key={f} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg font-medium">{f}</span>
-                      ))}
-                      {p.features.length > 3 && <span className="text-xs text-slate-400 font-medium">+{p.features.length - 3}</span>}
-                    </div>
-                  )}
-                  {p.description && !p.features.length && (
-                    <p className="text-xs text-slate-400 pt-3 border-t border-slate-50 line-clamp-2">{p.description}</p>
-                  )}
                 </div>
               </div>
             );
