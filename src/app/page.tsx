@@ -1299,7 +1299,10 @@ export default function PortfolioPage() {
                               </button>
                             </div>
                           </div>
-                          <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${p.price_type === "kira" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                              {p.price_type === "kira" ? "Kiralık" : "Satılık"}
+                            </span>
                             {p.price ? (
                               <span className="font-bold text-amber-600 text-base leading-none">
                                 {p.price.toLocaleString("tr-TR")} ₺
