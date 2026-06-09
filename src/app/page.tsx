@@ -1330,8 +1330,8 @@ export default function PortfolioPage() {
                               {p.danisan && <span className="text-[11px] text-amber-700 font-medium truncate">{p.danisan}</span>}
                               {(matchCountByProp[p.id] ?? 0) > 0 && (
                                 <Link href="/matches" onClick={e => e.stopPropagation()}
-                                  className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
-                                  <Zap size={8} /> {matchCountByProp[p.id]} alıcı
+                                  className="flex items-center gap-1 text-xs font-bold text-white px-2 py-1 rounded-md ml-auto shadow-[0_0_8px_rgba(74,222,128,0.7)]" style={{background:"#16a34a"}}>
+                                  <Zap size={10} className="text-green-200" /> {matchCountByProp[p.id]} alıcı
                                 </Link>
                               )}
                             </div>
